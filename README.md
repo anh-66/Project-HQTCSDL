@@ -60,3 +60,47 @@ Truy cập: http://localhost:5000
 
 ## Demo xử lý tranh chấp CSDL
 Mô tả ngắn cách chạy test script mô phỏng nhiều người dùng đặt trùng 1 phòng (thêm sau khi có script test)
+
+hotel-management/
+│
+├── app.py                           BACKEND — điểm khởi động Flask, khai báo route
+├── config.py                        BACKEND — thông tin kết nối MySQL (host, user, password)
+├── requirements.txt                 BACKEND — danh sách thư viện Python cần cài
+│
+├── routes/                          BACKEND — xử lý logic nghiệp vụ theo từng nhóm chức năng
+│   ├── phong_routes.py              (route quản lý phòng)
+│   ├── dat_phong_routes.py          (route đặt phòng — chứa transaction/lock)
+│   ├── khach_hang_routes.py
+│   ├── hoa_don_routes.py
+│   └── auth_routes.py               (đăng nhập, phân quyền)
+│
+├── db/                               BACKEND — tầng kết nối & truy vấn CSDL
+│   ├── connection.py                 (hàm tạo kết nối tới MySQL)
+│   └── queries.py                    (các hàm gọi SQL: dat_phong(), check_in(), ...)
+│
+├── templates/                       FRONTEND — giao diện HTML (Jinja2)
+│   ├── layout.html                   (khung chung: navbar, Bootstrap CDN)
+│   ├── trang_chu.html
+│   ├── phong/
+│   │   ├── danh_sach.html
+│   │   └── them_moi.html
+│   ├── dat_phong/
+│   │   ├── form_dat_phong.html
+│   │   └── xac_nhan.html
+│   ├── checkin_checkout.html
+│   ├── hoa_don.html
+│   └── dang_nhap.html
+│
+├── static/                          FRONTEND — file tĩnh
+│   ├── css/style.css                 (CSS tùy chỉnh, ngoài Bootstrap)
+│   ├── js/main.js                    (validate form, xác nhận xoá...)
+│   └── img/
+│
+└── sql/                              CƠ SỞ DỮ LIỆU — toàn bộ mã nguồn MySQL
+    ├── 01_schema.sql                  (CREATE TABLE, PK, FK, CHECK, UNIQUE)
+    ├── 02_triggers.sql                (CREATE TRIGGER)
+    ├── 03_procedures.sql              (CREATE PROCEDURE)
+    ├── 04_views.sql                   (CREATE VIEW)
+    ├── 05_indexes.sql                 (CREATE INDEX)
+    ├── 06_grants.sql                  (tạo user, phân quyền GRANT/REVOKE)
+    └── 07_sample_data.sql             (dữ liệu mẫu để demo)
