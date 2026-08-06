@@ -1,0 +1,32 @@
+name: Python Syntax Check
+
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+    branches: [ "**" ]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        pip install flake8
+
+    - name: Lint syntax with flake8
+      run: |
+        # Dừng kiểm tra nếu có lỗi cú pháp nghiêm trọng (E9, F63, F7, F82)
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        # Cảnh báo các lỗi style code chung
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
