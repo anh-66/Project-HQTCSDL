@@ -1,3 +1,4 @@
+```
 # Hệ thống quản lý khách sạn
 
 Đồ án môn Hệ quản trị cơ sở dữ liệu — Nhóm 5
@@ -6,7 +7,6 @@
 - Backend: Python (Flask)
 - Frontend: HTML, Jinja2, Bootstrap
 - Database: MySQL (InnoDB)
-
 ## Thành viên nhóm
 | Họ tên | MSSV | Phụ trách |
 
