@@ -50,10 +50,11 @@ hotel-management/
     ├── 01_schema.sql                  (CREATE TABLE, PK, FK, CHECK, UNIQUE)
     ├── 02_triggers.sql                (CREATE TRIGGER)
     ├── 03_procedures.sql              (CREATE PROCEDURE)
-    ├── 04_views.sql                   (CREATE VIEW)
-    ├── 05_indexes.sql                 (CREATE INDEX)
-    ├── 06_grants.sql                  (tạo user, phân quyền GRANT/REVOKE)
-    └── 07_sample_data.sql             (dữ liệu mẫu để demo)
+    ├── 04_function.sql
+    ├── 05_views.sql                   (CREATE VIEW)
+    ├── 06_indexes.sql                 (CREATE INDEX)
+    ├── 07_grants.sql                  (tạo user, phân quyền GRANT/REVOKE)
+    └── 08_sample_data.sql             (dữ liệu mẫu để demo)
 ## Cài đặt
 
 ### 1. Clone project
