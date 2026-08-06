@@ -1,8 +1,9 @@
 -- 03_procedures.sql: Tạo 6 Stored Procedures quản lý giao dịch
+USE hotel_management;
 
 DELIMITER $$
 
--- Procedure 1: Đặt phòng mới (Có chống race condition)
+-- Procedure 1: sp_TaoDatPhong (Dùng SELECT ... FOR UPDATE chống race condition)
 CREATE PROCEDURE sp_TaoDatPhong (
     IN p_ma_kh INT,
     IN p_ma_nv INT,
@@ -26,6 +27,7 @@ BEGIN
 
     START TRANSACTION;
 
+    -- Khóa dòng phòng bằng FOR UPDATE
     SELECT ma_phong INTO v_phong_id FROM phong WHERE ma_phong = p_ma_phong FOR UPDATE;
 
     SELECT COUNT(*) INTO v_conflict_count
@@ -61,8 +63,8 @@ BEGIN
     END IF;
 END$$
 
--- Procedure 2: Thực hiện Check-in
-CREATE PROCEDURE sp_CheckIn (
+-- Procedure 2: sp_XacNhanCheckIn
+CREATE PROCEDURE sp_XacNhanCheckIn (
     IN p_ma_dat_phong INT,
     IN p_ma_phong INT,
     OUT p_message VARCHAR(255)
@@ -81,14 +83,13 @@ BEGIN
     WHERE ma_dat_phong = p_ma_dat_phong AND ma_phong = p_ma_phong;
 
     UPDATE dat_phong SET trang_thai = 'DaNhanPhong' WHERE ma_dat_phong = p_ma_dat_phong;
-    UPDATE phong SET trang_thai = 'DangSuDung' WHERE ma_phong = p_ma_phong;
 
     COMMIT;
     SET p_message = 'Check-in thành công!';
 END$$
 
--- Procedure 3: Ghi nhận dịch vụ khách hàng sử dụng
-CREATE PROCEDURE sp_GhiNhanDichVu (
+-- Procedure 3: sp_GhiNhanSuDungDichVu
+CREATE PROCEDURE sp_GhiNhanSuDungDichVu (
     IN p_ma_dat_phong INT,
     IN p_ma_phong INT,
     IN p_ma_dich_vu INT,
@@ -102,8 +103,8 @@ BEGIN
     SET p_message = 'Thêm dịch vụ thành công!';
 END$$
 
--- Procedure 4: Lập hóa đơn và tính tiền tự động
-CREATE PROCEDURE sp_LapHoaDon (
+-- Procedure 4: sp_CheckOut_LapHoaDon
+CREATE PROCEDURE sp_CheckOut_LapHoaDon (
     IN p_ma_dat_phong INT,
     IN p_ma_nv INT,
     IN p_giam_gia DECIMAL(12,2),
@@ -115,9 +116,13 @@ BEGIN
     DECLARE v_tien_dv DECIMAL(12,2);
     DECLARE v_tong_thanhtoan DECIMAL(12,2);
 
-    SET v_tien_phong = fn_TinhTongTienPhong(p_ma_dat_phong);
-    SET v_tien_dv = fn_TinhTongTienDichVu(p_ma_dat_phong);
+    SET v_tien_phong = fn_TinhTienPhong(p_ma_dat_phong);
+    SET v_tien_dv = fn_TinhTienDichVu(p_ma_dat_phong);
     SET v_tong_thanhtoan = (v_tien_phong + v_tien_dv) - p_giam_gia;
+
+    UPDATE chi_tiet_dat_phong 
+    SET ngay_tra_thuc_te = NOW() 
+    WHERE ma_dat_phong = p_ma_dat_phong;
 
     INSERT INTO hoa_don (ma_dat_phong, ma_nv, tong_tien_phong, tong_tien_dich_vu, giam_gia, tong_thanh_toan, phuong_thuc_tt, trang_thai_tt)
     VALUES (p_ma_dat_phong, p_ma_nv, v_tien_phong, v_tien_dv, p_giam_gia, v_tong_thanhtoan, p_phuong_thuc_tt, 'ChuaThanhToan')
@@ -128,56 +133,49 @@ BEGIN
         tong_thanh_toan = v_tong_thanhtoan,
         phuong_thuc_tt = p_phuong_thuc_tt;
 
-    SET p_message = 'Lập hóa đơn thành công!';
+    SET p_message = 'Check-out và lập hóa đơn thành công!';
 END$$
 
--- Procedure 5: Thực hiện Check-out và xác nhận thanh toán
-CREATE PROCEDURE sp_CheckOut (
+-- Procedure 5: sp_XacNhanThanhToan
+CREATE PROCEDURE sp_XacNhanThanhToan (
     IN p_ma_dat_phong INT,
-    IN p_ma_phong INT,
     OUT p_message VARCHAR(255)
 )
 BEGIN
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         ROLLBACK;
-        SET p_message = 'Lỗi hệ thống khi Check-out.';
+        SET p_message = 'Lỗi hệ thống khi xác nhận thanh toán.';
     END;
 
     START TRANSACTION;
 
-    UPDATE chi_tiet_dat_phong 
-    SET ngay_tra_thuc_te = NOW() 
-    WHERE ma_dat_phong = p_ma_dat_phong AND ma_phong = p_ma_phong;
-
-    UPDATE dat_phong SET trang_thai = 'DaTraPhong' WHERE ma_dat_phong = p_ma_dat_phong;
     UPDATE hoa_don SET trang_thai_tt = 'DaThanhToan' WHERE ma_dat_phong = p_ma_dat_phong;
+    UPDATE dat_phong SET trang_thai = 'DaTraPhong' WHERE ma_dat_phong = p_ma_dat_phong;
 
     COMMIT;
-    SET p_message = 'Check-out và hoàn tất thanh toán thành công!';
+    SET p_message = 'Thanh toán thành công và giải phóng phòng!';
 END$$
 
--- Procedure 6: Hủy phiếu đặt phòng
+-- Procedure 6: sp_HuyDatPhong (Kiểm tra điều kiện trước 24h)
 CREATE PROCEDURE sp_HuyDatPhong (
     IN p_ma_dat_phong INT,
     OUT p_message VARCHAR(255)
 )
 BEGIN
     DECLARE v_trang_thai VARCHAR(20);
+    DECLARE v_ngay_nhan DATE;
 
-    SELECT trang_thai INTO v_trang_thai FROM dat_phong WHERE ma_dat_phong = p_ma_dat_phong;
+    SELECT trang_thai, ngay_nhan_du_kien INTO v_trang_thai, v_ngay_nhan 
+    FROM dat_phong WHERE ma_dat_phong = p_ma_dat_phong;
 
-    IF v_trang_thai = 'DaDat' THEN
-        UPDATE dat_phong SET trang_thai = 'DaHuy' WHERE ma_dat_phong = p_ma_dat_phong;
-        
-        UPDATE phong p 
-        JOIN chi_tiet_dat_phong ct ON p.ma_phong = ct.ma_phong 
-        SET p.trang_thai = 'Trong' 
-        WHERE ct.ma_dat_phong = p_ma_dat_phong;
-
-        SET p_message = 'Hủy đặt phòng thành công!';
-    ELSE
+    IF v_trang_thai != 'DaDat' THEN
         SET p_message = 'Không thể hủy đơn đặt phòng ở trạng thái này.';
+    ELSEIF DATEDIFF(v_ngay_nhan, CURDATE()) < 1 THEN
+        SET p_message = 'Chỉ được phép hủy đặt phòng trước 24 giờ!';
+    ELSE
+        UPDATE dat_phong SET trang_thai = 'DaHuy' WHERE ma_dat_phong = p_ma_dat_phong;
+        SET p_message = 'Hủy đặt phòng thành công!';
     END IF;
 END$$
 

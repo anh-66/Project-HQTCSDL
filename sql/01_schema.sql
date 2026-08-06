@@ -1,4 +1,6 @@
 -- 01_schema.sql: Tạo cấu trúc 9 bảng CSDL (Engine InnoDB)
+CREATE DATABASE IF NOT EXISTS hotel_management DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE hotel_management;
 
 CREATE TABLE IF NOT EXISTS nhan_vien (
     ma_nv INT AUTO_INCREMENT PRIMARY KEY,
