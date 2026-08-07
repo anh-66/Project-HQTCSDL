@@ -1,4 +1,3 @@
-```
 # Hệ thống quản lý khách sạn
 
 Đồ án môn Hệ quản trị cơ sở dữ liệu — Nhóm 5
@@ -50,10 +49,10 @@ hotel-management/
     ├── 01_schema.sql                  (CREATE TABLE, PK, FK, CHECK, UNIQUE)
     ├── 02_triggers.sql                (CREATE TRIGGER)
     ├── 03_procedures.sql              (CREATE PROCEDURE)
-    ├── 04_functions.sql               (CREATE Funtion)
-    ├── 05_views.sql                   (CREATE views)
-    ├── 06_indexes.sql                 (CREATE index)
-    └── 07_grants.sql                  (tạo user, phân quyền GRANT/REVOKE)
+    ├── 04_function.sql
+    ├── 05_views.sql                   (CREATE VIEW)
+    ├── 06_indexes.sql                 (CREATE INDEX)
+    ├── 07_grants.sql                  (tạo user, phân quyền GRANT/REVOKE)
     └── 08_sample_data.sql             (dữ liệu mẫu để demo)
 ## Cài đặt
 
@@ -106,4 +105,3 @@ Truy cập: http://localhost:5000
 
 ## Demo xử lý tranh chấp CSDL
 Mô tả ngắn cách chạy test script mô phỏng nhiều người dùng đặt trùng 1 phòng (thêm sau khi có script test)
-
