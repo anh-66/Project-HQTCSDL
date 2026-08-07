@@ -36,7 +36,7 @@ if __name__ == "__main__":
     ma_kh_1, ma_kh_2 = 1, 2
     ma_nv = 1
     nguon_dat = 'Online'
-    ma_phong = 101
+    ma_phong = 1
     check_in = '2023-12-01'
     check_out = '2023-12-05'
 

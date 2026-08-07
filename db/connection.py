@@ -18,7 +18,8 @@ def get_connection():
             password=Config.DB_CONFIG['password'],
             database=Config.DB_CONFIG['database'],
             port=Config.DB_CONFIG['port'],
-            cursorclass=pymysql.cursors.DictCursor
+            cursorclass=pymysql.cursors.DictCursor,
+            charset='utf8mb4'
         )
         return connection
     except pymysql.MySQLError as e:
