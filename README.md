@@ -1,3 +1,4 @@
+```
 # Hệ thống quản lý khách sạn
 
 Đồ án môn Hệ quản trị cơ sở dữ liệu — Nhóm 5
