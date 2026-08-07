@@ -82,9 +82,11 @@ pip install -r requirements.txt
 mysql -u root -p < sql/01_schema.sql
 mysql -u root -p < sql/02_triggers.sql
 mysql -u root -p < sql/03_procedures.sql
-mysql -u root -p < sql/04_views.sql
-mysql -u root -p < sql/05_indexes.sql
-mysql -u root -p < sql/07_sample_data.sql
+mysql -u root -p < sql/04_functions.sql
+mysql -u root -p < sql/05_views.sql
+mysql -u root -p < sql/06_indexes.sql
+mysql -u root -p < sql/07_grants.sql
+mysql -u root -p < sql/08_sample_data.sql
 \`\`\`
 
 ### 5. Chạy ứng dụng
