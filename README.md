@@ -50,10 +50,11 @@ hotel-management/
     ├── 01_schema.sql                  (CREATE TABLE, PK, FK, CHECK, UNIQUE)
     ├── 02_triggers.sql                (CREATE TRIGGER)
     ├── 03_procedures.sql              (CREATE PROCEDURE)
-    ├── 04_views.sql                   (CREATE VIEW)
-    ├── 05_indexes.sql                 (CREATE INDEX)
-    ├── 06_grants.sql                  (tạo user, phân quyền GRANT/REVOKE)
-    └── 07_sample_data.sql             (dữ liệu mẫu để demo)
+    ├── 04_functions.sql               (CREATE Funtion)
+    ├── 05_views.sql                   (CREATE views)
+    ├── 06_indexes.sql                 (CREATE index)
+    └── 07_grants.sql                  (tạo user, phân quyền GRANT/REVOKE)
+    └── 08_sample_data.sql             (dữ liệu mẫu để demo)
 ## Cài đặt
 
 ### 1. Clone project
@@ -81,9 +82,11 @@ pip install -r requirements.txt
 mysql -u root -p < sql/01_schema.sql
 mysql -u root -p < sql/02_triggers.sql
 mysql -u root -p < sql/03_procedures.sql
-mysql -u root -p < sql/04_views.sql
-mysql -u root -p < sql/05_indexes.sql
-mysql -u root -p < sql/07_sample_data.sql
+mysql -u root -p < sql/04_functions.sql
+mysql -u root -p < sql/05_views.sql
+mysql -u root -p < sql/06_indexes.sql
+mysql -u root -p < sql/07_grants.sql
+mysql -u root -p < sql/08_sample_data.sql
 \`\`\`
 
 ### 5. Chạy ứng dụng
