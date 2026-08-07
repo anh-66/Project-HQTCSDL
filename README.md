@@ -106,4 +106,3 @@ Truy cập: http://localhost:5000
 
 ## Demo xử lý tranh chấp CSDL
 Mô tả ngắn cách chạy test script mô phỏng nhiều người dùng đặt trùng 1 phòng (thêm sau khi có script test)
-
