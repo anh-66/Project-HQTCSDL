@@ -2,7 +2,7 @@
 {% block title %}Quản lý nhân viên{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h4><i class="bi bi-people"></i> Quản lý tài khoản Nhân viên</h4>
+    <h4><i class="bi bi-people-fill"></i> Quản lý tài khoản Nhân viên</h4>
     <a href="{{ url_for('auth.admin_them_nhan_vien') }}" class="btn btn-primary">
         <i class="bi bi-plus-lg"></i> Thêm nhân viên
     </a>
@@ -21,45 +21,71 @@
                     <th>Tài khoản</th>
                     <th>Trạng thái</th>
                     <th>Ngày tạo</th>
-                    <th></th>
+                    <th class="text-end">Hành động</th>
                 </tr>
             </thead>
             <tbody>
                 {% for nv in danh_sach %}
                 <tr>
-                    <td>{{ nv.ma_nv }}</td>
-                    <td>{{ nv.ho_ten }}</td>
+                    <td><span style="font-weight: 600; color: #1a56db;">#{{ nv.ma_nv }}</span></td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div style="width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, #1a56db, #0d2b6b); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                <i class="bi bi-person-fill" style="color: #fff; font-size: 0.85rem;"></i>
+                            </div>
+                            <span style="font-weight: 600;">{{ nv.ho_ten }}</span>
+                        </div>
+                    </td>
                     <td>{{ nv.sdt or '-' }}</td>
                     <td>{{ nv.email or '-' }}</td>
-                    <td><span class="badge bg-info text-dark">{{ nv.vai_tro }}</span></td>
-                    <td>{{ nv.tai_khoan }}</td>
                     <td>
-                        {% if nv.trang_thai == 'DangLam' %}
-                        <span class="badge bg-success">Đang làm</span>
+                        {% if nv.vai_tro == 'Admin' %}
+                        <span class="badge" style="background: #fde8e8 !important; color: #991b1b !important;">
+                            <i class="bi bi-shield-fill me-1"></i>Admin
+                        </span>
                         {% else %}
-                        <span class="badge bg-secondary">Nghỉ việc</span>
+                        <span class="badge bg-info">
+                            <i class="bi bi-headset me-1"></i>{{ nv.vai_tro }}
+                        </span>
                         {% endif %}
                     </td>
-                    <td>{{ nv.ngay_tao }}</td>
+                    <td><code style="background: #f3f4f6; padding: 2px 8px; border-radius: 4px; font-size: 0.85rem;">{{ nv.tai_khoan }}</code></td>
+                    <td>
+                        {% if nv.trang_thai == 'DangLam' %}
+                        <span class="badge bg-success"><i class="bi bi-circle-fill me-1" style="font-size:0.5rem;"></i>Đang làm</span>
+                        {% else %}
+                        <span class="badge bg-secondary"><i class="bi bi-circle-fill me-1" style="font-size:0.5rem;"></i>Nghỉ việc</span>
+                        {% endif %}
+                    </td>
+                    <td style="color: #6b7280; font-size: 0.88rem;">{{ nv.ngay_tao }}</td>
                     <td class="text-end">
                         {% if nv.trang_thai == 'DangLam' %}
                         <form method="POST" action="{{ url_for('auth.admin_khoa_nhan_vien', ma_nv=nv.ma_nv) }}"
                               onsubmit="return confirm('Khóa tài khoản {{ nv.ho_ten }}?');" class="d-inline">
-                            <button type="submit" class="btn btn-sm btn-outline-danger">Khóa</button>
+                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                <i class="bi bi-lock"></i> Khóa
+                            </button>
                         </form>
                         {% else %}
                         <form method="POST" action="{{ url_for('auth.admin_mo_khoa_nhan_vien', ma_nv=nv.ma_nv) }}"
                               class="d-inline">
-                            <button type="submit" class="btn btn-sm btn-outline-success">Mở khóa</button>
+                            <button type="submit" class="btn btn-sm btn-outline-success">
+                                <i class="bi bi-unlock"></i> Mở khóa
+                            </button>
                         </form>
                         {% endif %}
                     </td>
                 </tr>
                 {% else %}
-                <tr><td colspan="9" class="text-center text-muted py-4">Chưa có nhân viên nào.</td></tr>
+                <tr>
+                    <td colspan="9" class="text-center py-5" style="color: #9ca3af;">
+                        <i class="bi bi-people" style="font-size: 2.5rem; display: block; margin-bottom: 8px; opacity: 0.4;"></i>
+                        Chưa có nhân viên nào.
+                    </td>
+                </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 </div>
-{% endblock %}
+{% endblock %}

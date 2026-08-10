@@ -2,15 +2,34 @@
 {% block title %}Hồ sơ cá nhân{% endblock %}
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="card shadow-sm">
+    <div class="col-md-7 col-lg-6">
+        <div class="card shadow-lg" style="border-radius: 16px; overflow: hidden; border: none;">
+            <!-- Card Header -->
+            <div style="background: linear-gradient(135deg, #0d2b6b 0%, #1a56db 100%); padding: 28px 32px; display: flex; align-items: center; gap: 16px;">
+                <div style="width: 56px; height: 56px; background: rgba(255,255,255,0.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <i class="bi bi-person-fill" style="font-size: 1.6rem; color: #fbbf24;"></i>
+                </div>
+                <div>
+                    <h4 style="color: #fff; font-weight: 800; margin: 0; font-size: 1.2rem;">{{ nguoi_dung.ho_ten }}</h4>
+                    <p style="color: rgba(255,255,255,0.7); margin: 3px 0 0; font-size: 0.85rem;">
+                        <i class="bi bi-person-badge me-1"></i>Hồ sơ cá nhân
+                    </p>
+                </div>
+            </div>
+            <!-- Card Body -->
             <div class="card-body p-4">
-                <h4 class="card-title mb-4"><i class="bi bi-person-badge"></i> Thông tin cá nhân</h4>
-
+                <!-- Name (read-only) -->
                 <div class="mb-3">
-                    <label class="form-label text-muted">Họ tên</label>
+                    <label class="form-label" style="color: #6b7280;">
+                        <i class="bi bi-person me-1 text-primary"></i>Họ tên
+                    </label>
                     <input type="text" class="form-control" value="{{ nguoi_dung.ho_ten }}" disabled>
                 </div>
+
+                <hr style="border-color: #e2e8f0; margin: 16px 0;">
+                <p style="font-weight: 700; color: #1a56db; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 14px;">
+                    <i class="bi bi-pencil me-1"></i>Thông tin có thể chỉnh sửa
+                </p>
 
                 {% if loai == 'nhan_vien' %}
                 <form method="POST" action="{{ url_for('auth.ho_so_nhan_vien') }}">
@@ -18,30 +37,41 @@
                 <form method="POST" action="{{ url_for('khach_hang.ho_so') }}">
                 {% endif %}
                     <div class="mb-3">
-                        <label class="form-label">Số điện thoại</label>
-                        <input type="text" class="form-control" name="sdt" value="{{ nguoi_dung.sdt or '' }}">
+                        <label class="form-label">
+                            <i class="bi bi-telephone me-1 text-primary"></i>Số điện thoại
+                        </label>
+                        <input type="text" class="form-control" name="sdt" value="{{ nguoi_dung.sdt or '' }}" placeholder="0912345678">
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Email</label>
-                        <input type="email" class="form-control" name="email" value="{{ nguoi_dung.email or '' }}">
+                        <label class="form-label">
+                            <i class="bi bi-envelope me-1 text-primary"></i>Email
+                        </label>
+                        <input type="email" class="form-control" name="email" value="{{ nguoi_dung.email or '' }}" placeholder="example@email.com">
                     </div>
 
                     {% if loai == 'khach_hang' %}
                     <div class="mb-3">
-                        <label class="form-label">Địa chỉ</label>
-                        <input type="text" class="form-control" name="dia_chi" value="{{ nguoi_dung.dia_chi or '' }}">
+                        <label class="form-label">
+                            <i class="bi bi-geo-alt me-1 text-primary"></i>Địa chỉ
+                        </label>
+                        <input type="text" class="form-control" name="dia_chi" value="{{ nguoi_dung.dia_chi or '' }}" placeholder="Số nhà, đường, quận...">
                     </div>
                     {% endif %}
 
-                    <div class="mb-3">
-                        <label class="form-label">Mật khẩu mới <small class="text-muted">(bỏ trống nếu không đổi)</small></label>
-                        <input type="password" class="form-control" name="mat_khau_moi" minlength="6">
+                    <div class="mb-4">
+                        <label class="form-label">
+                            <i class="bi bi-lock me-1 text-primary"></i>Mật khẩu mới
+                            <small style="color: #9ca3af; font-weight: 400;">(bỏ trống nếu không đổi)</small>
+                        </label>
+                        <input type="password" class="form-control" name="mat_khau_moi" minlength="6" placeholder="Nhập mật khẩu mới...">
                     </div>
 
-                    <button type="submit" class="btn btn-primary w-100">Lưu thay đổi</button>
+                    <button type="submit" class="btn btn-primary w-100" style="padding: 12px;">
+                        <i class="bi bi-check-lg me-2"></i>Lưu thay đổi
+                    </button>
                 </form>
             </div>
         </div>
     </div>
 </div>
-{% endblock %}
+{% endblock %}

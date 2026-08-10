@@ -2,21 +2,41 @@
 {% block title %}Thêm nhân viên{% endblock %}
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-md-7">
-        <div class="card shadow-sm">
+    <div class="col-md-8 col-lg-7">
+        <div class="card shadow-lg" style="border-radius: 16px; overflow: hidden; border: none;">
+            <!-- Card Header -->
+            <div style="background: linear-gradient(135deg, #0d2b6b 0%, #1a56db 100%); padding: 24px 32px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 44px; height: 44px; background: rgba(255,255,255,0.15); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                        <i class="bi bi-person-plus-fill" style="font-size: 1.3rem; color: #fbbf24;"></i>
+                    </div>
+                    <div>
+                        <h4 style="color: #fff; font-weight: 800; margin: 0; font-size: 1.2rem;">Thêm tài khoản nhân viên</h4>
+                        <p style="color: rgba(255,255,255,0.7); margin: 2px 0 0; font-size: 0.83rem;">Tạo tài khoản cho nhân viên mới</p>
+                    </div>
+                </div>
+            </div>
+            <!-- Card Body -->
             <div class="card-body p-4">
-                <h4 class="card-title mb-4"><i class="bi bi-person-plus"></i> Thêm tài khoản nhân viên</h4>
                 <form method="POST" action="{{ url_for('auth.admin_them_nhan_vien') }}">
+                    <!-- Personal Info -->
+                    <p style="font-weight: 700; color: #1a56db; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 14px;">
+                        <i class="bi bi-person-badge me-1"></i>Thông tin cá nhân
+                    </p>
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Họ tên *</label>
-                            <input type="text" class="form-control" name="ho_ten" value="{{ form.ho_ten if form else '' }}" required>
+                            <label class="form-label">Họ tên <span style="color:#e02424;">*</span></label>
+                            <input type="text" class="form-control" name="ho_ten" value="{{ form.ho_ten if form else '' }}" required placeholder="Nhập họ và tên">
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Vai trò *</label>
+                            <label class="form-label">Vai trò <span style="color:#e02424;">*</span></label>
                             <select class="form-select" name="vai_tro" required>
-                                <option value="LeTan" {% if form and form.vai_tro=='LeTan' %}selected{% endif %}>Lễ tân</option>
-                                <option value="Admin" {% if form and form.vai_tro=='Admin' %}selected{% endif %}>Admin</option>
+                                <option value="LeTan" {% if form and form.vai_tro=='LeTan' %}selected{% endif %}>
+                                    Lễ tân
+                                </option>
+                                <option value="Admin" {% if form and form.vai_tro=='Admin' %}selected{% endif %}>
+                                    Admin
+                                </option>
                             </select>
                         </div>
                         <div class="col-md-6 mb-3">
@@ -33,26 +53,42 @@
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">SĐT</label>
-                            <input type="text" class="form-control" name="sdt" value="{{ form.sdt if form else '' }}">
+                            <input type="text" class="form-control" name="sdt" value="{{ form.sdt if form else '' }}" placeholder="0912345678">
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Email</label>
-                            <input type="email" class="form-control" name="email" value="{{ form.email if form else '' }}">
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Tên tài khoản *</label>
-                            <input type="text" class="form-control" name="tai_khoan" value="{{ form.tai_khoan if form else '' }}" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Mật khẩu tạm thời *</label>
-                            <input type="password" class="form-control" name="mat_khau" required minlength="6">
+                            <input type="email" class="form-control" name="email" value="{{ form.email if form else '' }}" placeholder="nhanvien@example.com">
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-primary w-100">Thêm nhân viên</button>
-                    <a href="{{ url_for('auth.admin_danh_sach_nhan_vien') }}" class="btn btn-outline-secondary w-100 mt-2">Hủy</a>
+
+                    <hr style="border-color: #e2e8f0; margin: 8px 0 16px;">
+
+                    <!-- Account Info -->
+                    <p style="font-weight: 700; color: #1a56db; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 14px;">
+                        <i class="bi bi-shield-lock me-1"></i>Thông tin tài khoản
+                    </p>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Tên tài khoản <span style="color:#e02424;">*</span></label>
+                            <input type="text" class="form-control" name="tai_khoan" value="{{ form.tai_khoan if form else '' }}" required placeholder="Tên đăng nhập">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Mật khẩu tạm thời <span style="color:#e02424;">*</span></label>
+                            <input type="password" class="form-control" name="mat_khau" required minlength="6" placeholder="Tối thiểu 6 ký tự">
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 mt-2">
+                        <button type="submit" class="btn btn-primary flex-fill" style="padding: 12px;">
+                            <i class="bi bi-person-check me-2"></i>Thêm nhân viên
+                        </button>
+                        <a href="{{ url_for('auth.admin_danh_sach_nhan_vien') }}" class="btn btn-outline-secondary flex-fill" style="padding: 12px;">
+                            <i class="bi bi-arrow-left me-2"></i>Quay lại
+                        </a>
+                    </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
-{% endblock %}
+{% endblock %}
