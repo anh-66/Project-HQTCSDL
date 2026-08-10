@@ -1,0 +1,65 @@
+{% extends "layout.html" %}
+{% block title %}Quản lý nhân viên{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4><i class="bi bi-people"></i> Quản lý tài khoản Nhân viên</h4>
+    <a href="{{ url_for('auth.admin_them_nhan_vien') }}" class="btn btn-primary">
+        <i class="bi bi-plus-lg"></i> Thêm nhân viên
+    </a>
+</div>
+
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>Mã NV</th>
+                    <th>Họ tên</th>
+                    <th>SĐT</th>
+                    <th>Email</th>
+                    <th>Vai trò</th>
+                    <th>Tài khoản</th>
+                    <th>Trạng thái</th>
+                    <th>Ngày tạo</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for nv in danh_sach %}
+                <tr>
+                    <td>{{ nv.ma_nv }}</td>
+                    <td>{{ nv.ho_ten }}</td>
+                    <td>{{ nv.sdt or '-' }}</td>
+                    <td>{{ nv.email or '-' }}</td>
+                    <td><span class="badge bg-info text-dark">{{ nv.vai_tro }}</span></td>
+                    <td>{{ nv.tai_khoan }}</td>
+                    <td>
+                        {% if nv.trang_thai == 'DangLam' %}
+                        <span class="badge bg-success">Đang làm</span>
+                        {% else %}
+                        <span class="badge bg-secondary">Nghỉ việc</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ nv.ngay_tao }}</td>
+                    <td class="text-end">
+                        {% if nv.trang_thai == 'DangLam' %}
+                        <form method="POST" action="{{ url_for('auth.admin_khoa_nhan_vien', ma_nv=nv.ma_nv) }}"
+                              onsubmit="return confirm('Khóa tài khoản {{ nv.ho_ten }}?');" class="d-inline">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Khóa</button>
+                        </form>
+                        {% else %}
+                        <form method="POST" action="{{ url_for('auth.admin_mo_khoa_nhan_vien', ma_nv=nv.ma_nv) }}"
+                              class="d-inline">
+                            <button type="submit" class="btn btn-sm btn-outline-success">Mở khóa</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="9" class="text-center text-muted py-4">Chưa có nhân viên nào.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

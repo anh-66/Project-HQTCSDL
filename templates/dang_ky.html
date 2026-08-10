@@ -1,0 +1,60 @@
+{% extends "layout.html" %}
+{% block title %}Đăng ký tài khoản{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-7">
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <h4 class="card-title text-center mb-4">
+                    <i class="bi bi-person-plus"></i> Đăng ký tài khoản Khách hàng
+                </h4>
+                <form method="POST" action="{{ url_for('auth.dang_ky') }}">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Họ tên *</label>
+                            <input type="text" class="form-control" name="ho_ten" value="{{ form.ho_ten if form else '' }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Số CCCD *</label>
+                            <input type="text" class="form-control" name="cccd" value="{{ form.cccd if form else '' }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Ngày sinh</label>
+                            <input type="date" class="form-control" name="ngay_sinh" value="{{ form.ngay_sinh if form else '' }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Số điện thoại *</label>
+                            <input type="text" class="form-control" name="sdt" value="{{ form.sdt if form else '' }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" name="email" value="{{ form.email if form else '' }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Địa chỉ</label>
+                            <input type="text" class="form-control" name="dia_chi" value="{{ form.dia_chi if form else '' }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Tên tài khoản *</label>
+                            <input type="text" class="form-control" name="tai_khoan" value="{{ form.tai_khoan if form else '' }}" required>
+                        </div>
+                        <div class="col-md-6"></div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Mật khẩu *</label>
+                            <input type="password" class="form-control" name="mat_khau" required minlength="6">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Xác nhận mật khẩu *</label>
+                            <input type="password" class="form-control" name="xac_nhan_mat_khau" required minlength="6">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Đăng ký</button>
+                </form>
+                <p class="text-center mt-3 mb-0">
+                    Đã có tài khoản? <a href="{{ url_for('auth.dang_nhap') }}">Đăng nhập</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

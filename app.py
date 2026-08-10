@@ -1,13 +1,20 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, render_template, session
 from db.connection import get_connection, close_connection
 from config import Config
+
+# Blueprint của module Auth & Admin 
+from routes.auth_routes import auth_bp
+from routes.khach_hang_routes import kh_bp
 
 app = Flask(__name__)
 app.config.from_object(Config)
 
+app.register_blueprint(auth_bp)
+app.register_blueprint(kh_bp)
+
 @app.route('/')
-def home():
-    return "Hệ thống Quản lý Khách sạn đang chạy!"
+def trang_chu():
+    return render_template('trang_chu.html')
 
 @app.route('/test-db')
 def test_db():

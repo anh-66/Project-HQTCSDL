@@ -1,0 +1,58 @@
+{% extends "layout.html" %}
+{% block title %}Thêm nhân viên{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-7">
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <h4 class="card-title mb-4"><i class="bi bi-person-plus"></i> Thêm tài khoản nhân viên</h4>
+                <form method="POST" action="{{ url_for('auth.admin_them_nhan_vien') }}">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Họ tên *</label>
+                            <input type="text" class="form-control" name="ho_ten" value="{{ form.ho_ten if form else '' }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Vai trò *</label>
+                            <select class="form-select" name="vai_tro" required>
+                                <option value="LeTan" {% if form and form.vai_tro=='LeTan' %}selected{% endif %}>Lễ tân</option>
+                                <option value="Admin" {% if form and form.vai_tro=='Admin' %}selected{% endif %}>Admin</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Ngày sinh</label>
+                            <input type="date" class="form-control" name="ngay_sinh" value="{{ form.ngay_sinh if form else '' }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Giới tính</label>
+                            <select class="form-select" name="gioi_tinh">
+                                <option value="Nam">Nam</option>
+                                <option value="Nu">Nữ</option>
+                                <option value="Khac">Khác</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">SĐT</label>
+                            <input type="text" class="form-control" name="sdt" value="{{ form.sdt if form else '' }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" name="email" value="{{ form.email if form else '' }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Tên tài khoản *</label>
+                            <input type="text" class="form-control" name="tai_khoan" value="{{ form.tai_khoan if form else '' }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Mật khẩu tạm thời *</label>
+                            <input type="password" class="form-control" name="mat_khau" required minlength="6">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Thêm nhân viên</button>
+                    <a href="{{ url_for('auth.admin_danh_sach_nhan_vien') }}" class="btn btn-outline-secondary w-100 mt-2">Hủy</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

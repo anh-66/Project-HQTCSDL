@@ -1,0 +1,32 @@
+{% extends "layout.html" %}
+{% block title %}Đăng nhập{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <h4 class="card-title text-center mb-4">
+                    <i class="bi bi-box-arrow-in-right"></i> Đăng nhập
+                </h4>
+                <form method="POST" action="{{ url_for('auth.dang_nhap') }}">
+                    <div class="mb-3">
+                        <label class="form-label">Tài khoản</label>
+                        <input type="text" class="form-control" name="tai_khoan" required autofocus>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Mật khẩu</label>
+                        <input type="password" class="form-control" name="mat_khau" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Đăng nhập</button>
+                </form>
+                <p class="text-center mt-3 mb-0">
+                    Chưa có tài khoản? <a href="{{ url_for('auth.dang_ky') }}">Đăng ký ngay</a>
+                </p>
+                <p class="text-center text-muted small mt-2">
+                    Dùng chung cho Khách hàng, Lễ tân và Admin.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

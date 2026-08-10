@@ -1,0 +1,47 @@
+{% extends "layout.html" %}
+{% block title %}Hồ sơ cá nhân{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <h4 class="card-title mb-4"><i class="bi bi-person-badge"></i> Thông tin cá nhân</h4>
+
+                <div class="mb-3">
+                    <label class="form-label text-muted">Họ tên</label>
+                    <input type="text" class="form-control" value="{{ nguoi_dung.ho_ten }}" disabled>
+                </div>
+
+                {% if loai == 'nhan_vien' %}
+                <form method="POST" action="{{ url_for('auth.ho_so_nhan_vien') }}">
+                {% else %}
+                <form method="POST" action="{{ url_for('khach_hang.ho_so') }}">
+                {% endif %}
+                    <div class="mb-3">
+                        <label class="form-label">Số điện thoại</label>
+                        <input type="text" class="form-control" name="sdt" value="{{ nguoi_dung.sdt or '' }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" name="email" value="{{ nguoi_dung.email or '' }}">
+                    </div>
+
+                    {% if loai == 'khach_hang' %}
+                    <div class="mb-3">
+                        <label class="form-label">Địa chỉ</label>
+                        <input type="text" class="form-control" name="dia_chi" value="{{ nguoi_dung.dia_chi or '' }}">
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label class="form-label">Mật khẩu mới <small class="text-muted">(bỏ trống nếu không đổi)</small></label>
+                        <input type="password" class="form-control" name="mat_khau_moi" minlength="6">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100">Lưu thay đổi</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

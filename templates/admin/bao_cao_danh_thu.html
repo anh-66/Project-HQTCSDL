@@ -1,0 +1,74 @@
+{% extends "layout.html" %}
+{% block title %}Báo cáo doanh thu{% endblock %}
+{% block content %}
+<h4 class="mb-4"><i class="bi bi-graph-up-arrow"></i> Báo cáo doanh thu</h4>
+
+<form method="GET" action="{{ url_for('auth.admin_bao_cao_doanh_thu') }}" class="row g-2 align-items-end mb-4">
+    <div class="col-auto">
+        <label class="form-label mb-0">Tháng</label>
+        <select class="form-select" name="thang">
+            {% for m in range(1, 13) %}
+            <option value="{{ m }}" {% if m == thang %}selected{% endif %}>{{ m }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-auto">
+        <label class="form-label mb-0">Năm</label>
+        <input type="number" class="form-control" name="nam" value="{{ nam }}" style="width:110px">
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-primary">Xem báo cáo</button>
+    </div>
+</form>
+
+<div class="card text-bg-primary mb-4" style="max-width: 360px;">
+    <div class="card-body">
+        <h6 class="card-title">Doanh thu thực thu tháng {{ thang }}/{{ nam }}</h6>
+        <p class="card-text fs-3 fw-bold mb-0">{{ '{:,.0f}'.format(tong_doanh_thu_thang) }} đ</p>
+    </div>
+</div>
+
+<h5 class="mb-3">Chi tiết hóa đơn (vw_BaoCaoDoanhThuHoaDon)</h5>
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>Mã HĐ</th>
+                    <th>Khách hàng</th>
+                    <th>Lễ tân lập</th>
+                    <th class="text-end">Tiền phòng</th>
+                    <th class="text-end">Tiền dịch vụ</th>
+                    <th class="text-end">Giảm giá</th>
+                    <th class="text-end">Tổng thanh toán</th>
+                    <th>Ngày lập</th>
+                    <th>Trạng thái</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for hd in chi_tiet_hoa_don %}
+                <tr>
+                    <td>{{ hd.ma_hoa_don }}</td>
+                    <td>{{ hd.ten_khach_hang }}</td>
+                    <td>{{ hd.ten_le_tan or '-' }}</td>
+                    <td class="text-end">{{ '{:,.0f}'.format(hd.tong_tien_phong) }}</td>
+                    <td class="text-end">{{ '{:,.0f}'.format(hd.tong_tien_dich_vu) }}</td>
+                    <td class="text-end">{{ '{:,.0f}'.format(hd.giam_gia) }}</td>
+                    <td class="text-end fw-bold">{{ '{:,.0f}'.format(hd.tong_thanh_toan) }}</td>
+                    <td>{{ hd.ngay_lap }}</td>
+                    <td>
+                        {% if hd.trang_thai_tt == 'DaThanhToan' %}
+                        <span class="badge bg-success">Đã thanh toán</span>
+                        {% else %}
+                        <span class="badge bg-warning text-dark">Chưa thanh toán</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="9" class="text-center text-muted py-4">Chưa có hóa đơn nào.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
