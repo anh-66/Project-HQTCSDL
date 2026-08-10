@@ -1,0 +1,46 @@
+{% extends "layout.html" %}
+{% block title %}Đăng nhập - Hệ thống Quản lý Khách sạn{% endblock %}
+{% block content %}
+<div class="row justify-content-center" style="min-height: 70vh; align-items: center; display: flex;">
+    <div class="col-md-5 col-sm-10">
+        <div class="card shadow-lg" style="border-radius: 16px; overflow: hidden; border: none;">
+            <!-- Card Header -->
+            <div style="background: linear-gradient(135deg, #0d2b6b 0%, #1a56db 100%); padding: 28px 32px; text-align: center;">
+                <div style="width: 64px; height: 64px; background: rgba(255,255,255,0.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px;">
+                    <i class="bi bi-building-fill" style="font-size: 1.8rem; color: #fbbf24;"></i>
+                </div>
+                <h4 style="color: #fff; font-weight: 800; margin: 0; font-size: 1.3rem;">Đăng nhập hệ thống</h4>
+                <p style="color: rgba(255,255,255,0.75); margin: 4px 0 0; font-size: 0.88rem;">Hệ thống Quản lý Khách sạn</p>
+            </div>
+            <!-- Card Body -->
+            <div class="card-body p-4">
+                <form method="POST" action="{{ url_for('auth.dang_nhap') }}">
+                    <div class="mb-3">
+                        <label class="form-label">
+                            <i class="bi bi-person me-1 text-primary"></i>Tài khoản
+                        </label>
+                        <input type="text" class="form-control" name="tai_khoan" required autofocus placeholder="Nhập tên tài khoản">
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label">
+                            <i class="bi bi-lock me-1 text-primary"></i>Mật khẩu
+                        </label>
+                        <input type="password" class="form-control" name="mat_khau" required placeholder="Nhập mật khẩu">
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100" style="padding: 12px;">
+                        <i class="bi bi-box-arrow-in-right me-2"></i>Đăng nhập
+                    </button>
+                </form>
+                <hr style="border-color: #e2e8f0; margin: 20px 0;">
+                <p class="text-center mb-1" style="color: #6b7280; font-size: 0.9rem;">
+                    Chưa có tài khoản?
+                    <a href="{{ url_for('auth.dang_ky') }}" style="color: #1a56db; font-weight: 600; text-decoration: none;">Đăng ký ngay</a>
+                </p>
+                <p class="text-center mb-0" style="color: #9ca3af; font-size: 0.8rem;">
+                    <i class="bi bi-info-circle me-1"></i>Dùng chung cho Khách hàng, Lễ tân và Admin.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

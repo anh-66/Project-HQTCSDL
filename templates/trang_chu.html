@@ -1,0 +1,15 @@
+{% extends "layout.html" %}
+{% block title %}Trang chủ{% endblock %}
+{% block content %}
+<div class="p-5 mb-4 bg-white rounded-3 shadow-sm text-center">
+    <h1 class="display-6"><i class="bi bi-building"></i> Hệ thống Quản lý Khách sạn</h1>
+    <p class="col-lg-8 mx-auto text-muted">
+        {% if session.get('user_id') %}
+        Xin chào, <strong>{{ session.get('ho_ten') }}</strong>! Bạn đang đăng nhập với vai trò
+        <strong>{{ session.get('vai_tro') }}</strong>.
+        {% else %}
+        Vui lòng đăng nhập hoặc đăng ký để sử dụng hệ thống đặt phòng.
+        {% endif %}
+    </p>
+</div>
+{% endblock %}
