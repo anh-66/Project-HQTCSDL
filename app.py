@@ -2,15 +2,21 @@ from flask import Flask, jsonify, render_template, session
 from db.connection import get_connection, close_connection
 from config import Config
 
-# Blueprint của module Auth & Admin 
+# Blueprint Auth & Admin (Thanh vien 2)
 from routes.auth_routes import auth_bp
 from routes.khach_hang_routes import kh_bp
+
+# Blueprint Dat phong & Check-in (Thanh vien 4)
+from routes.dat_phong_routes import dat_phong_bp
+from routes.luu_tru_routes import luu_tru_bp
 
 app = Flask(__name__)
 app.config.from_object(Config)
 
 app.register_blueprint(auth_bp)
 app.register_blueprint(kh_bp)
+app.register_blueprint(dat_phong_bp)
+app.register_blueprint(luu_tru_bp)
 
 @app.route('/')
 def trang_chu():

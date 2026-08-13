@@ -1,0 +1,134 @@
+{% extends "layout.html" %}
+{% block title %}Quản lý phiếu đặt phòng – QL Khách Sạn{% endblock %}
+
+{% block content %}
+<div class="row mb-4 align-items-center">
+  <div class="col">
+    <h2 class="fw-bold">
+      <i class="bi bi-journal-text me-2 text-primary"></i>Quản lý phiếu đặt phòng
+    </h2>
+    <p class="text-muted">Toàn bộ phiếu đặt trong hệ thống.</p>
+  </div>
+  <div class="col-auto d-flex gap-2">
+    <a href="{{ url_for('dat_phong.walk_in') }}" class="btn btn-warning" id="btn-walkin-top">
+      <i class="bi bi-person-walk me-1"></i>Walk-in mới
+    </a>
+    <a href="{{ url_for('luu_tru.danh_sach_checkin') }}" class="btn btn-success" id="btn-checkin-top">
+      <i class="bi bi-door-open me-1"></i>Check-in
+    </a>
+  </div>
+</div>
+
+<!-- Bộ lọc trạng thái -->
+<div class="mb-3 d-flex gap-2 flex-wrap">
+  <a href="{{ url_for('dat_phong.quan_ly_dat_phong') }}"
+     class="btn btn-sm {{ 'btn-primary' if not trang_thai_filter else 'btn-outline-primary' }}"
+     id="filter-all">Tất cả</a>
+  {% for tt, label, color in [
+      ('DaDat',      'Đã đặt',      'primary'),
+      ('DaNhanPhong','Đang ở',       'success'),
+      ('DaTraPhong', 'Đã trả',      'secondary'),
+      ('DaHuy',      'Đã hủy',      'danger')
+  ] %}
+  <a href="{{ url_for('dat_phong.quan_ly_dat_phong', trang_thai=tt) }}"
+     class="btn btn-sm {{ 'btn-' + color if trang_thai_filter == tt else 'btn-outline-' + color }}"
+     id="filter-{{ tt }}">{{ label }}</a>
+  {% endfor %}
+</div>
+
+{% if danh_sach %}
+<div class="table-responsive">
+  <table class="table table-hover align-middle border rounded-4 overflow-hidden shadow-sm">
+    <thead class="table-primary">
+      <tr>
+        <th>#</th>
+        <th>Khách hàng</th>
+        <th>Phòng</th>
+        <th>Loại</th>
+        <th>Ngày nhận (DK)</th>
+        <th>Ngày trả (DK)</th>
+        <th>Nhận thực tế</th>
+        <th>Giá/đêm</th>
+        <th>Nguồn</th>
+        <th>Lễ tân</th>
+        <th>Trạng thái</th>
+        <th>Thao tác</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for dp in danh_sach %}
+      <tr>
+        <td class="fw-bold text-muted">#{{ dp.ma_dat_phong }}</td>
+        <td>
+          <strong>{{ dp.ten_khach }}</strong>
+          <small class="text-muted d-block">{{ dp.cccd }}</small>
+        </td>
+        <td><span class="badge bg-secondary fs-6">{{ dp.so_phong }}</span></td>
+        <td><small>{{ dp.ten_loai_phong }}</small></td>
+        <td>{{ dp.ngay_nhan_du_kien }}</td>
+        <td>{{ dp.ngay_tra_du_kien }}</td>
+        <td>
+          {% if dp.ngay_nhan_thuc_te %}
+            <small class="text-success"><i class="bi bi-check-circle me-1"></i>{{ dp.ngay_nhan_thuc_te.strftime('%d/%m %H:%M') }}</small>
+          {% else %}
+            <span class="text-muted">–</span>
+          {% endif %}
+        </td>
+        <td><small class="text-success fw-bold">{{ "{:,.0f}".format(dp.gia_tai_thoi_diem) }} ₫</small></td>
+        <td>
+          {% if dp.nguon_dat == 'Online' %}
+            <span class="badge bg-info-subtle text-info border border-info-subtle">Online</span>
+          {% else %}
+            <span class="badge bg-warning-subtle text-warning border border-warning-subtle">Tại quầy</span>
+          {% endif %}
+        </td>
+        <td><small>{{ dp.ten_le_tan or '–' }}</small></td>
+        <td>
+          {% if dp.trang_thai == 'DaDat' %}
+            <span class="badge bg-primary rounded-pill">Đã đặt</span>
+          {% elif dp.trang_thai == 'DaNhanPhong' %}
+            <span class="badge bg-success rounded-pill">Đang ở</span>
+          {% elif dp.trang_thai == 'DaTraPhong' %}
+            <span class="badge bg-secondary rounded-pill">Đã trả</span>
+          {% elif dp.trang_thai == 'DaHuy' %}
+            <span class="badge bg-danger rounded-pill">Đã hủy</span>
+          {% endif %}
+        </td>
+        <td>
+          <div class="d-flex gap-1 flex-wrap">
+            {% if dp.trang_thai == 'DaDat' %}
+            <form method="POST"
+                  action="{{ url_for('luu_tru.xac_nhan_checkin', ma_dat_phong=dp.ma_dat_phong) }}"
+                  onsubmit="return confirm('Xác nhận check-in phòng {{ dp.so_phong }}?')">
+              <button class="btn btn-success btn-sm" id="btn-ci-{{ dp.ma_dat_phong }}"
+                      title="Check-in">
+                <i class="bi bi-box-arrow-in-right"></i>
+              </button>
+            </form>
+            <form method="POST"
+                  action="{{ url_for('dat_phong.huy_dat_phong', ma_dat_phong=dp.ma_dat_phong) }}"
+                  onsubmit="return confirm('Hủy phiếu đặt #{{ dp.ma_dat_phong }}?')">
+              <button class="btn btn-outline-danger btn-sm" id="btn-huy-ql-{{ dp.ma_dat_phong }}"
+                      title="Hủy đặt phòng">
+                <i class="bi bi-x-circle"></i>
+              </button>
+            </form>
+            {% else %}
+            <span class="text-muted small">–</span>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<p class="text-muted small mt-2">Tổng: <strong>{{ danh_sach|length }}</strong> phiếu đặt.</p>
+
+{% else %}
+<div class="text-center py-5">
+  <div class="text-primary display-1 mb-3"><i class="bi bi-inbox"></i></div>
+  <h5 class="text-muted">Không có phiếu đặt nào{{ ' với trạng thái "' + trang_thai_filter + '"' if trang_thai_filter else '' }}</h5>
+</div>
+{% endif %}
+{% endblock %}

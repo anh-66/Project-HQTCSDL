@@ -1,0 +1,98 @@
+{% extends "layout.html" %}
+{% block title %}Lịch sử đặt phòng – QL Khách Sạn{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+  <div class="col-12">
+    <h2 class="fw-bold">
+      <i class="bi bi-clock-history me-2 text-primary"></i>Lịch sử đặt phòng
+    </h2>
+    <p class="text-muted">Danh sách tất cả phiếu đặt phòng của bạn.</p>
+  </div>
+</div>
+
+{% if danh_sach %}
+<div class="table-responsive">
+  <table class="table table-hover align-middle border rounded-4 overflow-hidden shadow-sm">
+    <thead class="table-primary">
+      <tr>
+        <th>#</th>
+        <th>Phòng</th>
+        <th>Loại phòng</th>
+        <th>Ngày nhận (DK)</th>
+        <th>Ngày trả (DK)</th>
+        <th>Ngày nhận (TT)</th>
+        <th>Giá / đêm</th>
+        <th>Nguồn</th>
+        <th>Trạng thái</th>
+        <th>Thao tác</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for dp in danh_sach %}
+      <tr>
+        <td class="fw-bold text-muted">#{{ dp.ma_dat_phong }}</td>
+        <td><span class="badge bg-secondary fs-6">{{ dp.so_phong }}</span></td>
+        <td>{{ dp.ten_loai_phong }}</td>
+        <td>{{ dp.ngay_nhan_du_kien }}</td>
+        <td>{{ dp.ngay_tra_du_kien }}</td>
+        <td>
+          {% if dp.ngay_nhan_thuc_te %}
+            <span class="text-success"><i class="bi bi-check-circle me-1"></i>{{ dp.ngay_nhan_thuc_te.strftime('%d/%m/%Y %H:%M') }}</span>
+          {% else %}
+            <span class="text-muted">–</span>
+          {% endif %}
+        </td>
+        <td>{{ "{:,.0f}".format(dp.gia_tai_thoi_diem) }} ₫</td>
+        <td>
+          {% if dp.nguon_dat == 'Online' %}
+            <span class="badge bg-info-subtle text-info border border-info-subtle">Online</span>
+          {% else %}
+            <span class="badge bg-warning-subtle text-warning border border-warning-subtle">Tại quầy</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if dp.trang_thai == 'DaDat' %}
+            <span class="badge bg-primary rounded-pill">Đã đặt</span>
+          {% elif dp.trang_thai == 'DaNhanPhong' %}
+            <span class="badge bg-success rounded-pill">Đang ở</span>
+          {% elif dp.trang_thai == 'DaTraPhong' %}
+            <span class="badge bg-secondary rounded-pill">Đã trả</span>
+          {% elif dp.trang_thai == 'DaHuy' %}
+            <span class="badge bg-danger rounded-pill">Đã hủy</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if dp.trang_thai == 'DaDat' %}
+          <form method="POST"
+                action="{{ url_for('dat_phong.huy_dat_phong', ma_dat_phong=dp.ma_dat_phong) }}"
+                onsubmit="return confirm('Bạn có chắc chắn muốn hủy phiếu đặt phòng #{{ dp.ma_dat_phong }}?')">
+            <button type="submit" class="btn btn-outline-danger btn-sm" id="btn-huy-{{ dp.ma_dat_phong }}">
+              <i class="bi bi-x-circle me-1"></i>Hủy
+            </button>
+          </form>
+          {% else %}
+          <span class="text-muted small">–</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="text-center py-5">
+  <div class="text-primary display-1 mb-3"><i class="bi bi-calendar2-x"></i></div>
+  <h5 class="text-muted">Bạn chưa có phiếu đặt phòng nào</h5>
+  <a href="{{ url_for('dat_phong.tim_phong') }}" class="btn btn-primary mt-3" id="btn-go-search">
+    <i class="bi bi-search me-2"></i>Tìm phòng ngay
+  </a>
+</div>
+{% endif %}
+
+<div class="mt-3">
+  <a href="{{ url_for('dat_phong.tim_phong') }}" class="btn btn-outline-primary" id="btn-back-search">
+    <i class="bi bi-plus-circle me-2"></i>Đặt phòng mới
+  </a>
+</div>
+{% endblock %}

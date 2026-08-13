@@ -1,0 +1,124 @@
+{% extends "layout.html" %}
+{% block title %}Check-in / Nhận phòng – QL Khách Sạn{% endblock %}
+
+{% block content %}
+<div class="row mb-4 align-items-center">
+  <div class="col">
+    <h2 class="fw-bold">
+      <i class="bi bi-door-open me-2 text-success"></i>Check-in / Nhận phòng
+    </h2>
+    <p class="text-muted">Danh sách phiếu đặt phòng đang chờ nhận phòng (trạng thái <strong>Đã đặt</strong>).</p>
+  </div>
+  <div class="col-auto">
+    <a href="{{ url_for('dat_phong.walk_in') }}" class="btn btn-warning" id="btn-walkin-from-checkin">
+      <i class="bi bi-person-walk me-2"></i>Đặt phòng Walk-in
+    </a>
+    <a href="{{ url_for('dat_phong.quan_ly_dat_phong') }}" class="btn btn-outline-primary ms-2" id="btn-manage-from-checkin">
+      <i class="bi bi-list-ul me-2"></i>Quản lý phiếu đặt
+    </a>
+  </div>
+</div>
+
+{% if danh_sach %}
+<div class="row g-3">
+  {% for dp in danh_sach %}
+  <div class="col-12">
+    <div class="card border-0 shadow-sm rounded-4 checkin-card">
+      <div class="card-body p-4">
+        <div class="row align-items-center g-3">
+
+          <!-- Icon phòng -->
+          <div class="col-auto text-center d-none d-md-block">
+            <div class="bg-primary bg-opacity-10 rounded-3 p-3">
+              <i class="bi bi-door-closed-fill text-primary fs-2"></i>
+            </div>
+          </div>
+
+          <!-- Thông tin phiếu -->
+          <div class="col">
+            <div class="row g-2">
+              <div class="col-sm-6 col-md-3">
+                <small class="text-muted d-block">Phiếu đặt</small>
+                <strong class="text-primary">#{{ dp.ma_dat_phong }}</strong>
+              </div>
+              <div class="col-sm-6 col-md-3">
+                <small class="text-muted d-block">Khách hàng</small>
+                <strong>{{ dp.ten_khach }}</strong><br>
+                <small class="text-muted">{{ dp.sdt }}</small>
+              </div>
+              <div class="col-sm-6 col-md-3">
+                <small class="text-muted d-block">Phòng</small>
+                <span class="badge bg-secondary fs-6">{{ dp.so_phong }}</span>
+                <small class="text-muted d-block">{{ dp.ten_loai_phong }}</small>
+              </div>
+              <div class="col-sm-6 col-md-3">
+                <small class="text-muted d-block">Ngày nhận (dự kiến)</small>
+                <strong
+                  {% if dp.ngay_nhan_du_kien|string < today %}class="text-danger"{% endif %}>
+                  {{ dp.ngay_nhan_du_kien }}
+                </strong>
+                {% if dp.ngay_nhan_du_kien|string < today %}
+                  <span class="badge bg-danger-subtle text-danger ms-1">Quá hạn</span>
+                {% endif %}
+              </div>
+              <div class="col-sm-6 col-md-3">
+                <small class="text-muted d-block">Ngày trả (dự kiến)</small>
+                <span>{{ dp.ngay_tra_du_kien }}</span>
+              </div>
+              <div class="col-sm-6 col-md-3">
+                <small class="text-muted d-block">Giá / đêm (tại lúc đặt)</small>
+                <strong class="text-success">{{ "{:,.0f}".format(dp.gia_tai_thoi_diem) }} ₫</strong>
+              </div>
+              <div class="col-sm-6 col-md-3">
+                <small class="text-muted d-block">Nguồn</small>
+                {% if dp.nguon_dat == 'Online' %}
+                  <span class="badge bg-info-subtle text-info border border-info-subtle">Online</span>
+                {% else %}
+                  <span class="badge bg-warning-subtle text-warning border border-warning-subtle">Tại quầy</span>
+                {% endif %}
+              </div>
+              {% if dp.ten_le_tan %}
+              <div class="col-sm-6 col-md-3">
+                <small class="text-muted d-block">Lễ tân đặt</small>
+                <span>{{ dp.ten_le_tan }}</span>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Nút Check-in -->
+          <div class="col-auto">
+            <form method="POST"
+                  action="{{ url_for('luu_tru.xac_nhan_checkin', ma_dat_phong=dp.ma_dat_phong) }}"
+                  onsubmit="return confirm('Xác nhận CHECK-IN cho khách {{ dp.ten_khach }} – Phòng {{ dp.so_phong }}?')">
+              <button type="submit" class="btn btn-success btn-lg px-4 rounded-3"
+                      id="btn-checkin-{{ dp.ma_dat_phong }}">
+                <i class="bi bi-box-arrow-in-right me-2"></i>Check-in
+              </button>
+            </form>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="mt-3 text-muted small">
+  <i class="bi bi-info-circle me-1"></i>
+  Sau khi Check-in: hệ thống sẽ ghi nhận <strong>ngày nhận thực tế = ngay lúc này</strong>
+  và tự động chuyển trạng thái phòng sang <strong>Đang sử dụng</strong>.
+</div>
+
+{% else %}
+<div class="text-center py-5">
+  <div class="text-success display-1 mb-3"><i class="bi bi-calendar2-check"></i></div>
+  <h5 class="text-muted">Không có phiếu đặt nào đang chờ check-in</h5>
+  <p class="text-muted">Tất cả khách đã được nhận phòng hoặc chưa có phiếu đặt hôm nay.</p>
+  <a href="{{ url_for('dat_phong.walk_in') }}" class="btn btn-warning mt-2" id="btn-walkin-empty">
+    <i class="bi bi-person-walk me-2"></i>Tạo phiếu Walk-in
+  </a>
+</div>
+{% endif %}
+{% endblock %}
