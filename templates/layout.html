@@ -35,14 +35,15 @@
                 </li>
 
                 {% if session.get('vai_tro') == 'KhachHang' %}
-                <li class="nav-item"><a class="nav-link" href="#"><i class="bi bi-search me-1"></i>Tìm phòng</a></li>
-                <li class="nav-item"><a class="nav-link" href="#"><i class="bi bi-calendar-check me-1"></i>Lịch sử đặt phòng</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('dat_phong.tim_phong') }}"><i class="bi bi-search me-1"></i>Tìm phòng</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('dat_phong.lich_su_dat_phong') }}"><i class="bi bi-calendar-check me-1"></i>Lịch sử đặt phòng</a></li>
                 <li class="nav-item"><a class="nav-link" href="{{ url_for('khach_hang.ho_so') }}"><i class="bi bi-person me-1"></i>Hồ sơ của tôi</a></li>
                 {% endif %}
 
                 {% if session.get('vai_tro') == 'LeTan' %}
-                <li class="nav-item"><a class="nav-link" href="#"><i class="bi bi-door-open me-1"></i>Đặt phòng / Check-in</a></li>
-                <li class="nav-item"><a class="nav-link" href="#"><i class="bi bi-receipt me-1"></i>Dịch vụ &amp; Hóa đơn</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('luu_tru.danh_sach_checkin') }}"><i class="bi bi-door-open me-1"></i>Check-in</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('dat_phong.walk_in') }}"><i class="bi bi-person-walk me-1"></i>Walk-in</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('dat_phong.quan_ly_dat_phong') }}"><i class="bi bi-journal-text me-1"></i>Quản lý đặt phòng</a></li>
                 <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.ho_so_nhan_vien') }}"><i class="bi bi-person me-1"></i>Hồ sơ của tôi</a></li>
                 {% endif %}
 

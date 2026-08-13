@@ -1,0 +1,227 @@
+{% extends "layout.html" %}
+{% block title %}Tìm phòng & Đặt phòng – QL Khách Sạn{% endblock %}
+
+{% block content %}
+
+{% if mode == 'confirm' and phong %}
+<!-- ===================== CHẾ ĐỘ XÁC NHẬN ĐẶT PHÒNG ===================== -->
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <div class="card shadow-lg border-0 rounded-4">
+      <div class="card-header bg-primary text-white rounded-top-4 py-3">
+        <h4 class="mb-0"><i class="bi bi-calendar2-check me-2"></i>Xác nhận đặt phòng</h4>
+      </div>
+      <div class="card-body p-4">
+        <!-- Thông tin phòng -->
+        <div class="d-flex align-items-center gap-3 mb-4 p-3 bg-light rounded-3">
+          <div class="text-primary fs-1"><i class="bi bi-door-closed-fill"></i></div>
+          <div>
+            <h5 class="mb-1">Phòng {{ phong.so_phong }} – {{ phong.ten_loai_phong }}</h5>
+            <span class="text-muted">Tầng {{ phong.tang }} &bull; Sức chứa {{ phong.suc_chua }} người</span><br>
+            <strong class="text-success fs-5">{{ "{:,.0f}".format(phong.gia_theo_ngay) }} ₫ / đêm</strong>
+          </div>
+        </div>
+
+        <form method="POST" action="{{ url_for('dat_phong.dat_phong_online', ma_phong=phong.ma_phong) }}">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold"><i class="bi bi-calendar-event me-1"></i>Ngày nhận phòng *</label>
+              <input type="date" name="ngay_nhan" class="form-control"
+                     value="{{ ngay_nhan }}" min="{{ today }}" required
+                     id="confirm-ngay-nhan">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold"><i class="bi bi-calendar-x me-1"></i>Ngày trả phòng *</label>
+              <input type="date" name="ngay_tra" class="form-control"
+                     value="{{ ngay_tra }}" min="{{ today }}" required
+                     id="confirm-ngay-tra">
+            </div>
+          </div>
+
+          <!-- Tóm tắt chi phí (tính động bằng JS) -->
+          <div class="alert alert-info mt-4 mb-0" id="confirm-summary">
+            <i class="bi bi-info-circle me-2"></i>
+            Chọn ngày để xem ước tính chi phí.
+          </div>
+
+          {% if phong.mo_ta %}
+          <p class="text-muted mt-3 mb-0"><small><i class="bi bi-info-square me-1"></i>{{ phong.mo_ta }}</small></p>
+          {% endif %}
+
+          <div class="d-flex gap-2 mt-4">
+            <button type="submit" class="btn btn-primary btn-lg flex-grow-1" id="btn-confirm-booking">
+              <i class="bi bi-check2-circle me-2"></i>Xác nhận đặt phòng
+            </button>
+            <a href="{{ url_for('dat_phong.tim_phong') }}" class="btn btn-outline-secondary btn-lg">
+              <i class="bi bi-arrow-left"></i> Quay lại
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% else %}
+<!-- ===================== FORM TÌM PHÒNG + KẾT QUẢ ===================== -->
+
+<div class="row mb-4">
+  <div class="col-12">
+    <h2 class="fw-bold"><i class="bi bi-search me-2 text-primary"></i>Tìm phòng trống</h2>
+    <p class="text-muted">Chọn ngày và loại phòng để tìm phòng phù hợp.</p>
+  </div>
+</div>
+
+<!-- Form tìm kiếm -->
+<div class="card border-0 shadow-sm rounded-4 mb-4">
+  <div class="card-body p-4">
+    <form method="POST" action="{{ url_for('dat_phong.tim_phong') }}" class="row g-3 align-items-end">
+      <div class="col-md-3">
+        <label class="form-label fw-semibold"><i class="bi bi-calendar-event me-1"></i>Ngày nhận *</label>
+        <input type="date" name="ngay_nhan" class="form-control form-control-lg"
+               value="{{ ngay_nhan }}" id="search-ngay-nhan" required>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label fw-semibold"><i class="bi bi-calendar-x me-1"></i>Ngày trả *</label>
+        <input type="date" name="ngay_tra" class="form-control form-control-lg"
+               value="{{ ngay_tra }}" id="search-ngay-tra" required>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label fw-semibold"><i class="bi bi-house me-1"></i>Loại phòng</label>
+        <select name="ma_loai_phong" class="form-select form-select-lg" id="search-loai-phong">
+          <option value="">-- Tất cả loại phòng --</option>
+          {% for lp in loai_phong_list %}
+          <option value="{{ lp.ma_loai_phong }}"
+            {% if ma_loai_phong_filter and ma_loai_phong_filter|int == lp.ma_loai_phong %}selected{% endif %}>
+            {{ lp.ten_loai_phong }} – {{ "{:,.0f}".format(lp.gia_theo_ngay) }} ₫/đêm
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <button type="submit" class="btn btn-primary btn-lg w-100" id="btn-search-room">
+          <i class="bi bi-search me-1"></i>Tìm phòng
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Kết quả tìm kiếm -->
+{% if phong_trong %}
+<div class="row mb-3">
+  <div class="col-12">
+    <h5 class="fw-semibold">
+      <i class="bi bi-check-circle-fill text-success me-2"></i>
+      Tìm thấy <span class="badge bg-primary">{{ phong_trong|length }}</span> phòng trống
+      từ <strong>{{ ngay_nhan }}</strong> đến <strong>{{ ngay_tra }}</strong>
+    </h5>
+  </div>
+</div>
+
+<div class="row g-3">
+  {% for phong in phong_trong %}
+  <div class="col-md-6 col-lg-4">
+    <div class="card border-0 shadow-sm rounded-4 h-100 phong-card">
+      <div class="card-body p-4">
+        <!-- Badge trạng thái -->
+        <div class="d-flex justify-content-between align-items-start mb-3">
+          <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2">
+            <i class="bi bi-check-circle me-1"></i>Còn trống
+          </span>
+          <span class="text-muted small">Tầng {{ phong.tang }}</span>
+        </div>
+        <!-- Tên phòng -->
+        <div class="text-center mb-3">
+          <div class="text-primary display-6 mb-1"><i class="bi bi-door-closed"></i></div>
+          <h5 class="fw-bold mb-0">Phòng {{ phong.so_phong }}</h5>
+          <p class="text-muted mb-0">{{ phong.ten_loai_phong }}</p>
+        </div>
+        <!-- Thông tin -->
+        <ul class="list-unstyled small text-muted mb-3">
+          <li><i class="bi bi-people me-2"></i>Sức chứa: {{ phong.suc_chua }} người</li>
+          {% if phong.mo_ta %}
+          <li><i class="bi bi-info-circle me-2"></i>{{ phong.mo_ta[:60] }}{% if phong.mo_ta|length > 60 %}...{% endif %}</li>
+          {% endif %}
+        </ul>
+        <!-- Giá -->
+        <div class="text-center mb-3">
+          <span class="fs-4 fw-bold text-success">{{ "{:,.0f}".format(phong.gia_theo_ngay) }} ₫</span>
+          <span class="text-muted"> / đêm</span>
+        </div>
+        <!-- Nút đặt -->
+        {% if session.get('vai_tro') == 'KhachHang' %}
+        <a href="{{ url_for('dat_phong.dat_phong_online', ma_phong=phong.ma_phong, ngay_nhan=ngay_nhan, ngay_tra=ngay_tra) }}"
+           class="btn btn-primary w-100 rounded-3" id="btn-book-{{ phong.ma_phong }}">
+          <i class="bi bi-calendar2-plus me-2"></i>Đặt ngay
+        </a>
+        {% elif not session.get('user_id') %}
+        <a href="{{ url_for('auth.dang_nhap', next=request.url) }}"
+           class="btn btn-outline-primary w-100 rounded-3">
+          <i class="bi bi-box-arrow-in-right me-2"></i>Đăng nhập để đặt
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% elif request.method == 'POST' %}
+<!-- Không có phòng trống (đã hiển thị flash message) -->
+<div class="text-center py-5">
+  <div class="text-warning display-1 mb-3"><i class="bi bi-calendar-x"></i></div>
+  <h5 class="text-muted">Không tìm thấy phòng trống trong khoảng thời gian này</h5>
+  <p class="text-muted">Hãy thử điều chỉnh ngày hoặc chọn loại phòng khác.</p>
+</div>
+{% endif %}
+
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Tự động cập nhật min date và tính tiền ước tính
+(function() {
+  const today = new Date().toISOString().split('T')[0];
+
+  // Form tìm kiếm
+  const sNgayNhan = document.getElementById('search-ngay-nhan');
+  const sNgayTra  = document.getElementById('search-ngay-tra');
+  if (sNgayNhan) sNgayNhan.min = today;
+  if (sNgayTra)  sNgayTra.min  = today;
+  if (sNgayNhan && sNgayTra) {
+    sNgayNhan.addEventListener('change', function() {
+      sNgayTra.min = this.value;
+      if (sNgayTra.value && sNgayTra.value <= this.value) sNgayTra.value = '';
+    });
+  }
+
+  // Form xác nhận đặt phòng – tính ước tính chi phí
+  const cNgayNhan = document.getElementById('confirm-ngay-nhan');
+  const cNgayTra  = document.getElementById('confirm-ngay-tra');
+  const summary   = document.getElementById('confirm-summary');
+  {% if phong %}
+  const giaPhong  = {{ phong.gia_theo_ngay }};
+  {% endif %}
+
+  function tinhChiPhi() {
+    if (!cNgayNhan || !cNgayTra || !summary) return;
+    const d1 = new Date(cNgayNhan.value);
+    const d2 = new Date(cNgayTra.value);
+    const soNgay = Math.ceil((d2 - d1) / 86400000);
+    if (soNgay > 0 && typeof giaPhong !== 'undefined') {
+      const tong = soNgay * giaPhong;
+      summary.innerHTML = `<i class="bi bi-calculator me-2"></i>
+        <strong>${soNgay} đêm</strong> × ${giaPhong.toLocaleString('vi-VN')} ₫ =
+        <strong class="text-success">${tong.toLocaleString('vi-VN')} ₫</strong>`;
+    }
+  }
+
+  if (cNgayNhan) cNgayNhan.addEventListener('change', tinhChiPhi);
+  if (cNgayTra)  cNgayTra.addEventListener('change', tinhChiPhi);
+  tinhChiPhi();
+})();
+</script>
+{% endblock %}

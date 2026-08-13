@@ -1,0 +1,259 @@
+{% extends "layout.html" %}
+{% block title %}Đặt phòng Walk-in – QL Khách Sạn{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+  <div class="col-12">
+    <h2 class="fw-bold">
+      <i class="bi bi-person-walk me-2 text-warning"></i>Đặt phòng tại quầy (Walk-in)
+    </h2>
+    <p class="text-muted">Lập phiếu đặt phòng cho khách vãng lai hoặc khách đến trực tiếp.</p>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Cột trái: Form thông tin khách -->
+  <div class="col-lg-5">
+    <div class="card border-0 shadow-sm rounded-4 h-100">
+      <div class="card-header bg-warning bg-opacity-10 border-0 rounded-top-4 py-3">
+        <h5 class="mb-0 text-warning-emphasis"><i class="bi bi-person-vcard me-2"></i>Thông tin khách hàng</h5>
+      </div>
+      <div class="card-body p-4">
+
+        <!-- Tra cứu theo CCCD -->
+        <div class="mb-3">
+          <label class="form-label fw-semibold">CCCD / CMND *</label>
+          <div class="input-group">
+            <input type="text" id="cccd-input" class="form-control"
+                   placeholder="Nhập số CCCD để tra cứu..."
+                   value="{{ form.cccd if form else '' }}">
+            <button type="button" class="btn btn-outline-secondary" id="btn-search-cccd">
+              <i class="bi bi-search"></i> Tra cứu
+            </button>
+          </div>
+          <div id="cccd-status" class="form-text mt-1"></div>
+        </div>
+
+        <form method="POST" action="{{ url_for('dat_phong.walk_in') }}" id="form-walkin">
+          <input type="hidden" name="cccd" id="cccd-hidden" value="{{ form.cccd if form else '' }}">
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Họ tên *</label>
+            <input type="text" name="ho_ten" id="ho-ten-input" class="form-control"
+                   value="{{ form.ho_ten if form else '' }}" required placeholder="Nguyễn Văn A">
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Số điện thoại *</label>
+            <input type="text" name="sdt" id="sdt-input" class="form-control"
+                   value="{{ form.sdt if form else '' }}" required placeholder="09xx...">
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Ngày sinh</label>
+            <input type="date" name="ngay_sinh" class="form-control"
+                   value="{{ form.ngay_sinh if form else '' }}">
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Email</label>
+            <input type="email" name="email" id="email-input" class="form-control"
+                   value="{{ form.email if form else '' }}" placeholder="khach@example.com">
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Địa chỉ</label>
+            <input type="text" name="dia_chi" class="form-control"
+                   value="{{ form.dia_chi if form else '' }}" placeholder="Số nhà, phường, quận...">
+          </div>
+
+          <!-- Cột phải: Chọn phòng và ngày (trong form, submit cùng) -->
+          <hr>
+          <h6 class="fw-bold text-primary mb-3"><i class="bi bi-door-open me-2"></i>Thông tin đặt phòng</h6>
+
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label fw-semibold">Ngày nhận *</label>
+              <input type="date" name="ngay_nhan" id="walkin-ngay-nhan" class="form-control"
+                     value="{{ form.ngay_nhan if form else today }}" required>
+            </div>
+            <div class="col-6">
+              <label class="form-label fw-semibold">Ngày trả *</label>
+              <input type="date" name="ngay_tra" id="walkin-ngay-tra" class="form-control"
+                     value="{{ form.ngay_tra if form else tomorrow }}" required>
+            </div>
+          </div>
+
+          <!-- Danh sách phòng (load động khi chọn ngày) -->
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Chọn phòng *</label>
+            <select name="ma_phong" id="select-phong" class="form-select" required>
+              <option value="">-- Chọn ngày trước để xem phòng --</option>
+              {% if form and form.ma_phong %}
+              <option value="{{ form.ma_phong }}" selected>Phòng đã chọn (#{{ form.ma_phong }})</option>
+              {% endif %}
+            </select>
+            <div class="form-text" id="phong-hint">Nhập ngày nhận/trả rồi hệ thống sẽ hiển thị phòng trống.</div>
+          </div>
+
+          <button type="submit" class="btn btn-warning btn-lg w-100 fw-bold" id="btn-submit-walkin">
+            <i class="bi bi-clipboard2-check me-2"></i>Lập phiếu đặt phòng
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cột phải: Danh sách loại phòng tham khảo -->
+  <div class="col-lg-7">
+    <div class="card border-0 shadow-sm rounded-4">
+      <div class="card-header bg-primary bg-opacity-10 border-0 rounded-top-4 py-3">
+        <h5 class="mb-0 text-primary"><i class="bi bi-list-ul me-2"></i>Bảng giá loại phòng</h5>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0 align-middle">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-4">Loại phòng</th>
+                <th>Giá / đêm</th>
+                <th>Sức chứa</th>
+                <th class="pe-4">Mô tả</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for lp in loai_phong_list %}
+              <tr>
+                <td class="ps-4 fw-semibold">{{ lp.ten_loai_phong }}</td>
+                <td><span class="text-success fw-bold">{{ "{:,.0f}".format(lp.gia_theo_ngay) }} ₫</span></td>
+                <td>{{ lp.suc_chua }} người</td>
+                <td class="pe-4 text-muted small">{{ lp.mo_ta or '–' }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel phòng trống (hiển thị khi chọn ngày) -->
+    <div class="card border-0 shadow-sm rounded-4 mt-3" id="panel-phong-trong" style="display:none!important">
+      <div class="card-header bg-success bg-opacity-10 border-0 rounded-top-4 py-3">
+        <h6 class="mb-0 text-success"><i class="bi bi-check2-circle me-2"></i>Phòng trống theo ngày đã chọn</h6>
+      </div>
+      <div class="card-body p-3" id="list-phong-trong">
+        <p class="text-muted mb-0">Đang tải...</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+  const today    = new Date().toISOString().split('T')[0];
+  const ngayNhan = document.getElementById('walkin-ngay-nhan');
+  const ngayTra  = document.getElementById('walkin-ngay-tra');
+  const selectPhong   = document.getElementById('select-phong');
+  const panelPhong    = document.getElementById('panel-phong-trong');
+  const listPhong     = document.getElementById('list-phong-trong');
+  const phongHint     = document.getElementById('phong-hint');
+
+  if (ngayNhan) ngayNhan.min = today;
+  if (ngayTra)  ngayTra.min  = today;
+
+  // Load phòng trống khi thay đổi ngày
+  function loadPhongTrong() {
+    const nn = ngayNhan.value;
+    const nt = ngayTra.value;
+    if (!nn || !nt || nt <= nn) {
+      selectPhong.innerHTML = '<option value="">-- Ngày trả phải sau ngày nhận --</option>';
+      return;
+    }
+    selectPhong.innerHTML = '<option value="">Đang tải...</option>';
+    fetch(`/dat-phong/phong-trong?ngay_nhan=${nn}&ngay_tra=${nt}`)
+      .then(r => r.json())
+      .then(data => {
+        selectPhong.innerHTML = data.length
+          ? '<option value="">-- Chọn phòng --</option>'
+          : '<option value="">-- Không có phòng trống --</option>';
+        data.forEach(p => {
+          const opt = document.createElement('option');
+          opt.value = p.ma_phong;
+          opt.textContent = `Phòng ${p.so_phong} – ${p.ten_loai_phong} – ${p.gia_theo_ngay.toLocaleString('vi-VN')} ₫/đêm (${p.suc_chua} người)`;
+          selectPhong.appendChild(opt);
+        });
+
+        // Cập nhật panel tham khảo
+        if (data.length) {
+          panelPhong.style.display = '';
+          listPhong.innerHTML = data.map(p => `
+            <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+              <div>
+                <strong>Phòng ${p.so_phong}</strong>
+                <span class="text-muted ms-2">– ${p.ten_loai_phong}</span>
+              </div>
+              <div class="text-end">
+                <span class="text-success fw-bold">${p.gia_theo_ngay.toLocaleString('vi-VN')} ₫</span>
+                <small class="text-muted d-block">${p.suc_chua} người</small>
+              </div>
+            </div>`).join('');
+        } else {
+          panelPhong.style.display = 'none';
+        }
+        phongHint.textContent = `Tìm thấy ${data.length} phòng trống.`;
+      })
+      .catch(() => {
+        selectPhong.innerHTML = '<option value="">-- Lỗi tải dữ liệu --</option>';
+      });
+  }
+
+  if (ngayNhan) ngayNhan.addEventListener('change', function() {
+    if (ngayTra.value && ngayTra.value <= this.value) ngayTra.value = '';
+    ngayTra.min = this.value;
+    loadPhongTrong();
+  });
+  if (ngayTra) ngayTra.addEventListener('change', loadPhongTrong);
+
+  // Tra cứu CCCD
+  const cccdInput   = document.getElementById('cccd-input');
+  const cccdHidden  = document.getElementById('cccd-hidden');
+  const cccdStatus  = document.getElementById('cccd-status');
+  const btnSearch   = document.getElementById('btn-search-cccd');
+  const hoTenInput  = document.getElementById('ho-ten-input');
+  const sdtInput    = document.getElementById('sdt-input');
+  const emailInput  = document.getElementById('email-input');
+
+  if (btnSearch) {
+    btnSearch.addEventListener('click', function() {
+      const cccd = cccdInput.value.trim();
+      if (!cccd) { cccdStatus.textContent = 'Vui lòng nhập CCCD.'; return; }
+      cccdHidden.value = cccd;
+      cccdStatus.innerHTML = '<span class="text-muted">Đang tra cứu...</span>';
+      fetch(`/dat-phong/tim-khach?cccd=${encodeURIComponent(cccd)}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.found) {
+            hoTenInput.value  = data.ho_ten;
+            sdtInput.value    = data.sdt;
+            if (emailInput) emailInput.value = data.email || '';
+            cccdStatus.innerHTML = `<span class="text-success"><i class="bi bi-check-circle me-1"></i>Đã tìm thấy khách hàng: <strong>${data.ho_ten}</strong></span>`;
+          } else {
+            hoTenInput.value = '';
+            sdtInput.value   = '';
+            cccdStatus.innerHTML = `<span class="text-warning"><i class="bi bi-exclamation-circle me-1"></i>Chưa có trong hệ thống. Vui lòng nhập thông tin khách mới.</span>`;
+          }
+        })
+        .catch(() => {
+          cccdStatus.innerHTML = '<span class="text-danger">Lỗi kết nối.</span>';
+        });
+    });
+  }
+
+  // Sync CCCD khi submit
+  const formWalkin = document.getElementById('form-walkin');
+  if (formWalkin) {
+    formWalkin.addEventListener('submit', function() {
+      if (cccdInput) cccdHidden.value = cccdInput.value.trim();
+    });
+  }
+})();
+</script>
+{% endblock %}
