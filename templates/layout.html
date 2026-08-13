@@ -44,6 +44,8 @@
                 <li class="nav-item"><a class="nav-link" href="{{ url_for('luu_tru.danh_sach_checkin') }}"><i class="bi bi-door-open me-1"></i>Check-in</a></li>
                 <li class="nav-item"><a class="nav-link" href="{{ url_for('dat_phong.walk_in') }}"><i class="bi bi-person-walk me-1"></i>Walk-in</a></li>
                 <li class="nav-item"><a class="nav-link" href="{{ url_for('dat_phong.quan_ly_dat_phong') }}"><i class="bi bi-journal-text me-1"></i>Quản lý đặt phòng</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('phong.danh_sach') }}"><i class="bi bi-building me-1"></i>Tra cứu phòng</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('dich_vu.danh_sach') }}"><i class="bi bi-cup-hot me-1"></i>Dịch vụ</a></li>
                 <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.ho_so_nhan_vien') }}"><i class="bi bi-person me-1"></i>Hồ sơ của tôi</a></li>
                 {% endif %}
 
@@ -64,8 +66,13 @@
                             </a>
                         </li>
                         <li>
-                            <a class="dropdown-item" href="#">
-                                <i class="bi bi-building me-2 text-primary"></i>Quản lý phòng &amp; dịch vụ
+                            <a class="dropdown-item" href="{{ url_for('phong.danh_sach') }}">
+                                <i class="bi bi-building me-2 text-primary"></i>Quản lý phòng
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('dich_vu.danh_sach') }}">
+                                <i class="bi bi-cup-hot me-2 text-primary"></i>Quản lý dịch vụ
                             </a>
                         </li>
                     </ul>

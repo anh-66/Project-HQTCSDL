@@ -1,0 +1,117 @@
+{% extends 'layout.html' %}
+{% block title %}Quản lý Dịch vụ - Quản lý Khách sạn{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-gear-fill"></i> Quản lý Danh mục Dịch vụ & Đơn giá</h2>
+    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalThemDichVu">
+        <i class="bi bi-plus-circle"></i> Thêm dịch vụ mới
+    </button>
+</div>
+
+<!-- Bảng danh sách dịch vụ -->
+<div class="table-responsive">
+    <table class="table table-bordered table-hover align-middle">
+        <thead class="table-dark">
+            <tr>
+                <th style="width: 80px;">Mã</th>
+                <th>Tên dịch vụ</th>
+                <th>Đơn giá (VNĐ)</th>
+                <th>Đơn vị tính</th>
+                <th style="width: 120px;">Thao tác</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if ds_dich_vu %}
+                {% for dv in ds_dich_vu %}
+                <tr>
+                    <td>{{ dv.ma_dich_vu }}</td>
+                    <td><strong>{{ dv.ten_dich_vu }}</strong></td>
+                    <td class="text-success fw-bold">{{ '{:,.0f}'.format(dv.don_gia) }} đ</td>
+                    <td>{{ dv.don_vi_tinh or '-' }}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" 
+                                data-bs-target="#modalSuaDV{{ dv.ma_dich_vu }}" title="Sửa">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <form action="{{ url_for('dich_vu.xoa', ma_dich_vu=dv.ma_dich_vu) }}" method="POST" class="d-inline">
+                            <button type="submit" class="btn btn-sm btn-outline-danger btn-xoa" title="Xóa">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+
+                <!-- Modal Sửa dịch vụ -->
+                <div class="modal fade" id="modalSuaDV{{ dv.ma_dich_vu }}" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <form action="{{ url_for('dich_vu.sua', ma_dich_vu=dv.ma_dich_vu) }}" method="POST">
+                                <div class="modal-header bg-primary text-white">
+                                    <h5 class="modal-title">Sửa dịch vụ #{{ dv.ma_dich_vu }}</h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Tên dịch vụ</label>
+                                        <input type="text" name="ten_dich_vu" class="form-control" value="{{ dv.ten_dich_vu }}" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Đơn giá (VNĐ)</label>
+                                        <input type="number" name="don_gia" class="form-control" value="{{ dv.don_gia }}" min="1" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Đơn vị tính</label>
+                                        <input type="text" name="don_vi_tinh" class="form-control" value="{{ dv.don_vi_tinh or '' }}" placeholder="VD: Lần, Chai, Suất">
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                                    <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="5" class="text-center text-muted">Chưa có dịch vụ nào trong hệ thống.</td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Modal Thêm dịch vụ -->
+<div class="modal fade" id="modalThemDichVu" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ url_for('dich_vu.them') }}" method="POST">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">Thêm dịch vụ mới</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Tên dịch vụ <span class="text-danger">*</span></label>
+                        <input type="text" name="ten_dich_vu" class="form-control" placeholder="VD: Giặt ủi, Ăn sáng, Đưa đón sân bay" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Đơn giá (VNĐ) <span class="text-danger">*</span></label>
+                        <input type="number" name="don_gia" class="form-control" placeholder="VD: 50000" min="1" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Đơn vị tính</label>
+                        <input type="text" name="don_vi_tinh" class="form-control" placeholder="VD: Bộ, Chai, Suất">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-success">Thêm dịch vụ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

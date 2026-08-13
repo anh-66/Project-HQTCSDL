@@ -1,0 +1,304 @@
+{% extends 'layout.html' %}
+{% block title %}Danh sách Phòng - Quản lý Khách sạn{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-door-open"></i> Quản lý Phòng & Loại phòng</h2>
+    <a href="{{ url_for('phong.them') }}" class="btn btn-success">
+        <i class="bi bi-plus-circle"></i> Thêm phòng mới
+    </a>
+</div>
+
+<!-- Tab chuyển đổi Phòng / Loại phòng -->
+<ul class="nav nav-tabs mb-3" id="tabPhong">
+    <li class="nav-item">
+        <a class="nav-link {% if not hien_tab or hien_tab != 'loai_phong' %}active{% endif %}" 
+           href="{{ url_for('phong.danh_sach') }}">Danh sách Phòng</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if hien_tab == 'loai_phong' %}active{% endif %}" 
+           href="{{ url_for('phong.danh_sach_loai_phong') }}">Loại phòng</a>
+    </li>
+</ul>
+
+{% if not hien_tab or hien_tab != 'loai_phong' %}
+<!-- ==================== TAB DANH SÁCH PHÒNG ==================== -->
+
+<!-- Bộ lọc và chuyển đổi giao diện xem -->
+<div class="card mb-4 shadow-sm">
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('phong.danh_sach') }}" class="row g-3 align-items-end">
+            <input type="hidden" name="view_mode" value="{{ view_mode }}">
+            <div class="col-md-3">
+                <label class="form-label font-weight-bold">Trạng thái</label>
+                <select name="trang_thai" class="form-select">
+                    <option value="">-- Tất cả trạng thái --</option>
+                    <option value="Trong" {% if filter_trang_thai == 'Trong' %}selected{% endif %}>Trống</option>
+                    <option value="DaDat" {% if filter_trang_thai == 'DaDat' %}selected{% endif %}>Đã đặt</option>
+                    <option value="DangSuDung" {% if filter_trang_thai == 'DangSuDung' %}selected{% endif %}>Đang sử dụng</option>
+                    <option value="BaoTri" {% if filter_trang_thai == 'BaoTri' %}selected{% endif %}>Bảo trì</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label font-weight-bold">Tầng</label>
+                <select name="tang" class="form-select">
+                    <option value="">-- Tất cả tầng --</option>
+                    {% for t in ds_tang %}
+                        <option value="{{ t }}" {% if filter_tang == t|string %}selected{% endif %}>Tầng {{ t }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary me-2">
+                    <i class="bi bi-funnel"></i> Lọc dữ liệu
+                </button>
+                <a href="{{ url_for('phong.danh_sach') }}" class="btn btn-outline-secondary">Xóa lọc</a>
+            </div>
+            <div class="col-md-3 text-end">
+                <div class="btn-group" role="group">
+                    <a href="{{ url_for('phong.danh_sach', view_mode='table', trang_thai=filter_trang_thai, tang=filter_tang) }}" 
+                       class="btn btn-outline-secondary {% if view_mode != 'grid' %}active{% endif %}">
+                        <i class="bi bi-list-task"></i> Bảng
+                    </a>
+                    <a href="{{ url_for('phong.danh_sach', view_mode='grid', trang_thai=filter_trang_thai, tang=filter_tang) }}" 
+                       class="btn btn-outline-primary {% if view_mode == 'grid' %}active{% endif %}">
+                        <i class="bi bi-grid-3x3-gap-fill"></i> Sơ đồ trực quan
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if view_mode == 'grid' %}
+<!-- ==================== GIAO DIỆN SƠ ĐỒ PHÒNG TRỰC QUAN (REAL-TIME MATRIX) ==================== -->
+<div class="mb-3 d-flex gap-3 align-items-center">
+    <span class="fw-bold">Chú thích trạng thái:</span>
+    <span class="badge bg-success p-2"><i class="bi bi-check-circle me-1"></i>Trống</span>
+    <span class="badge bg-primary p-2"><i class="bi bi-bookmark-check me-1"></i>Đã đặt</span>
+    <span class="badge bg-warning text-dark p-2"><i class="bi bi-person-fill me-1"></i>Đang sử dụng</span>
+    <span class="badge bg-danger p-2"><i class="bi bi-tools me-1"></i>Bảo trì</span>
+</div>
+
+{% if phong_theo_tang %}
+    {% for tang_num, danh_sach_phong in phong_theo_tang.items() %}
+    <div class="card mb-4 border-0 bg-light shadow-sm">
+        <div class="card-header bg-dark text-white fw-bold">
+            <i class="bi bi-layers me-2"></i>TẦNG {{ tang_num }} ({{ danh_sach_phong|length }} phòng)
+        </div>
+        <div class="card-body">
+            <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-3">
+                {% for p in danh_sach_phong %}
+                <div class="col">
+                    <div class="card h-100 border-2 {% if p.trang_thai == 'Trong' %}border-success{% elif p.trang_thai == 'DaDat' %}border-primary{% elif p.trang_thai == 'DangSuDung' %}border-warning{% else %}border-danger{% endif %}">
+                        <div class="card-header d-flex justify-content-between align-items-center {% if p.trang_thai == 'Trong' %}bg-success text-white{% elif p.trang_thai == 'DaDat' %}bg-primary text-white{% elif p.trang_thai == 'DangSuDung' %}bg-warning text-dark{% else %}bg-danger text-white{% endif %}">
+                            <h5 class="mb-0 fw-bold"><i class="bi bi-door-closed me-1"></i>{{ p.so_phong }}</h5>
+                            <span class="badge bg-light text-dark fw-normal">{{ p.ten_loai_phong }}</span>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-1"><i class="bi bi-cash-coin me-1"></i>Giá: <strong>{{ '{:,.0f}'.format(p.gia_theo_ngay) }} đ</strong>/ngày</p>
+                            <p class="mb-2"><i class="bi bi-people me-1"></i>Sức chứa: {{ p.suc_chua }} người</p>
+                            <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                                <span class="badge {% if p.trang_thai == 'Trong' %}bg-success{% elif p.trang_thai == 'DaDat' %}bg-primary{% elif p.trang_thai == 'DangSuDung' %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+                                    {% if p.trang_thai == 'Trong' %}Trống{% elif p.trang_thai == 'DaDat' %}Đã đặt{% elif p.trang_thai == 'DangSuDung' %}Đang ở{% else %}Bảo trì{% endif %}
+                                </span>
+                                <div>
+                                    <a href="{{ url_for('phong.sua', ma_phong=p.ma_phong) }}" class="btn btn-sm btn-outline-primary" title="Sửa">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <form action="{{ url_for('phong.xoa', ma_phong=p.ma_phong) }}" method="POST" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger btn-xoa" title="Xóa">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+{% else %}
+    <div class="alert alert-info text-center">Không có phòng nào thỏa mãn điều kiện lọc.</div>
+{% endif %}
+
+{% else %}
+<!-- ==================== GIAO DIỆN BẢNG DANH SÁCH PHÒNG ==================== -->
+<div class="table-responsive">
+    <table class="table table-bordered table-hover align-middle">
+        <thead class="table-dark">
+            <tr>
+                <th>Số phòng</th>
+                <th>Tầng</th>
+                <th>Loại phòng</th>
+                <th>Sức chứa</th>
+                <th>Giá/ngày</th>
+                <th>Trạng thái</th>
+                <th style="width: 120px;">Thao tác</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if ds_phong %}
+                {% for p in ds_phong %}
+                <tr>
+                    <td><strong>{{ p.so_phong }}</strong></td>
+                    <td>Tầng {{ p.tang }}</td>
+                    <td>{{ p.ten_loai_phong }}</td>
+                    <td>{{ p.suc_chua }} người</td>
+                    <td>{{ '{:,.0f}'.format(p.gia_theo_ngay) }} đ</td>
+                    <td>
+                        {% if p.trang_thai == 'Trong' %}
+                            <span class="badge bg-success">Trống</span>
+                        {% elif p.trang_thai == 'DaDat' %}
+                            <span class="badge bg-primary">Đã đặt</span>
+                        {% elif p.trang_thai == 'DangSuDung' %}
+                            <span class="badge bg-warning text-dark">Đang sử dụng</span>
+                        {% elif p.trang_thai == 'BaoTri' %}
+                            <span class="badge bg-danger">Bảo trì</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('phong.sua', ma_phong=p.ma_phong) }}" class="btn btn-sm btn-outline-primary" title="Sửa">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        <form action="{{ url_for('phong.xoa', ma_phong=p.ma_phong) }}" method="POST" class="d-inline">
+                            <button type="submit" class="btn btn-sm btn-outline-danger btn-xoa" title="Xóa">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted">Không có phòng nào.</td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+{% else %}
+<!-- ==================== TAB LOẠI PHÒNG ==================== -->
+
+<!-- Nút thêm loại phòng -->
+<button class="btn btn-success mb-3" data-bs-toggle="modal" data-bs-target="#modalThemLoaiPhong">
+    <i class="bi bi-plus-circle"></i> Thêm loại phòng
+</button>
+
+<!-- Bảng loại phòng -->
+<div class="table-responsive">
+    <table class="table table-bordered table-hover align-middle">
+        <thead class="table-dark">
+            <tr>
+                <th>Mã</th>
+                <th>Tên loại phòng</th>
+                <th>Giá theo ngày</th>
+                <th>Sức chứa</th>
+                <th>Mô tả</th>
+                <th style="width: 120px;">Thao tác</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for lp in ds_loai_phong %}
+            <tr>
+                <td>{{ lp.ma_loai_phong }}</td>
+                <td><strong>{{ lp.ten_loai_phong }}</strong></td>
+                <td>{{ '{:,.0f}'.format(lp.gia_theo_ngay) }} đ</td>
+                <td>{{ lp.suc_chua }} người</td>
+                <td>{{ lp.mo_ta or '' }}</td>
+                <td>
+                    <!-- Nút sửa mở modal -->
+                    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" 
+                            data-bs-target="#modalSuaLoaiPhong{{ lp.ma_loai_phong }}" title="Sửa">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <form action="{{ url_for('phong.xoa_loai', ma_loai_phong=lp.ma_loai_phong) }}" method="POST" class="d-inline">
+                        <button type="submit" class="btn btn-sm btn-outline-danger btn-xoa" title="Xóa">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
+                </td>
+            </tr>
+
+            <!-- Modal Sửa loại phòng -->
+            <div class="modal fade" id="modalSuaLoaiPhong{{ lp.ma_loai_phong }}" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <form action="{{ url_for('phong.sua_loai', ma_loai_phong=lp.ma_loai_phong) }}" method="POST">
+                            <div class="modal-header bg-primary text-white">
+                                <h5 class="modal-title">Sửa loại phòng #{{ lp.ma_loai_phong }}</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Tên loại phòng</label>
+                                    <input type="text" name="ten_loai_phong" class="form-control" value="{{ lp.ten_loai_phong }}" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Giá theo ngày (VNĐ)</label>
+                                    <input type="number" name="gia_theo_ngay" class="form-control" value="{{ lp.gia_theo_ngay }}" min="1" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Sức chứa (người)</label>
+                                    <input type="number" name="suc_chua" class="form-control" value="{{ lp.suc_chua }}" min="1" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Mô tả</label>
+                                    <textarea name="mo_ta" class="form-control" rows="2">{{ lp.mo_ta or '' }}</textarea>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                                <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Modal Thêm loại phòng -->
+<div class="modal fade" id="modalThemLoaiPhong" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ url_for('phong.them_loai') }}" method="POST">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">Thêm loại phòng mới</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Tên loại phòng</label>
+                        <input type="text" name="ten_loai_phong" class="form-control" placeholder="VD: Standard, Deluxe, Suite" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Giá theo ngày (VNĐ)</label>
+                        <input type="number" name="gia_theo_ngay" class="form-control" placeholder="VD: 500000" min="1" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Sức chứa (người)</label>
+                        <input type="number" name="suc_chua" class="form-control" placeholder="VD: 2" min="1" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Mô tả</label>
+                        <textarea name="mo_ta" class="form-control" rows="2" placeholder="Mô tả ngắn về loại phòng..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-success">Thêm mới</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
