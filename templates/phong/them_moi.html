@@ -1,0 +1,74 @@
+{% extends 'layout.html' %}
+{% block title %}{% if phong %}Sửa phòng {{ phong.so_phong }}{% else %}Thêm phòng mới{% endif %} - Quản lý Khách sạn{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header bg-dark text-white">
+                <h4 class="mb-0">
+                    {% if phong %}
+                        <i class="bi bi-pencil"></i> Sửa phòng {{ phong.so_phong }}
+                    {% else %}
+                        <i class="bi bi-plus-circle"></i> Thêm phòng mới
+                    {% endif %}
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="so_phong" class="form-label fw-bold">Số phòng <span class="text-danger">*</span></label>
+                        <input type="text" id="so_phong" name="so_phong" class="form-control" 
+                               value="{{ phong.so_phong if phong else '' }}" 
+                               placeholder="VD: P101, P201" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="ma_loai_phong" class="form-label fw-bold">Loại phòng <span class="text-danger">*</span></label>
+                        <select id="ma_loai_phong" name="ma_loai_phong" class="form-select" required>
+                            <option value="">-- Chọn loại phòng --</option>
+                            {% for lp in ds_loai_phong %}
+                                <option value="{{ lp.ma_loai_phong }}" 
+                                    {% if phong and phong.ma_loai_phong == lp.ma_loai_phong %}selected{% endif %}>
+                                    {{ lp.ten_loai_phong }} ({{ '{:,.0f}'.format(lp.gia_theo_ngay) }} đ/ngày)
+                                </option>
+                            {% endfor %}
+                        </select>
+                        {% if phong and (phong.trang_thai == 'DaDat' or phong.trang_thai == 'DangSuDung') %}
+                        <small class="text-warning"><i class="bi bi-exclamation-triangle"></i> Lưu ý: Phòng đang ở trạng thái {{ 'Đã đặt' if phong.trang_thai == 'DaDat' else 'Đang sử dụng' }}, không thể thay đổi loại phòng.</small>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="tang" class="form-label fw-bold">Tầng <span class="text-danger">*</span></label>
+                        <input type="number" id="tang" name="tang" class="form-control" 
+                               value="{{ phong.tang if phong else '' }}" 
+                               min="1" placeholder="VD: 1, 2, 3" required>
+                    </div>
+
+                    {% if phong %}
+                    <div class="mb-3">
+                        <label for="trang_thai" class="form-label fw-bold">Trạng thái phòng</label>
+                        <select id="trang_thai" name="trang_thai" class="form-select">
+                            <option value="Trong" {% if phong.trang_thai == 'Trong' %}selected{% endif %}>Trống</option>
+                            <option value="DaDat" {% if phong.trang_thai == 'DaDat' %}selected{% endif %}>Đã đặt</option>
+                            <option value="DangSuDung" {% if phong.trang_thai == 'DangSuDung' %}selected{% endif %}>Đang sử dụng</option>
+                            <option value="BaoTri" {% if phong.trang_thai == 'BaoTri' %}selected{% endif %}>Bảo trì</option>
+                        </select>
+                    </div>
+                    {% endif %}
+
+                    <div class="d-flex justify-content-between pt-3 border-top">
+                        <a href="{{ url_for('phong.danh_sach') }}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Quay lại
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg"></i> {% if phong %}Cập nhật{% else %}Thêm phòng{% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

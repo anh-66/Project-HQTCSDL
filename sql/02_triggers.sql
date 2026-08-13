@@ -1,4 +1,3 @@
--- 02_triggers.sql: Tạo 4 Triggers ràng buộc chuẩn hóa theo giaoTac-obj.docx
 USE hotel_management;
 
 DELIMITER $$
@@ -33,6 +32,17 @@ BEGIN
     IF OLD.trang_thai IN ('DaDat', 'DangSuDung') THEN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Không thể xóa phòng đang có khách đặt hoặc đang sử dụng!';
+    END IF;
+END$$
+
+-- 3b. trg_KiemTraSuaLoaiPhong: Chống đổi loại phòng khi phòng đang được đặt hoặc đang ở
+CREATE TRIGGER trg_KiemTraSuaLoaiPhong
+BEFORE UPDATE ON phong
+FOR EACH ROW
+BEGIN
+    IF OLD.trang_thai IN ('DaDat', 'DangSuDung') AND NEW.ma_loai_phong <> OLD.ma_loai_phong THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Không thể đổi loại phòng khi phòng đang có khách đặt hoặc đang sử dụng!';
     END IF;
 END$$
 

@@ -707,3 +707,300 @@ def tinh_tien_phong(ma_dat_phong):
             return row['tien_phong'] if row and row['tien_phong'] is not None else 0
     finally:
         close_connection(conn)
+
+
+# ===========================================================================
+# THANH VIEN 3 - MODULE QUAN LY PHONG & DICH VU
+# ===========================================================================
+
+# 5a. QUAN LY PHONG
+
+def lay_danh_sach_phong(trang_thai=None, tang=None):
+    """Lay danh sach phong, JOIN loai phong. Co the filter theo trang thai va tang."""
+    conn = get_connection()
+    if not conn:
+        return []
+    try:
+        with conn.cursor() as cursor:
+            sql = """SELECT p.ma_phong, p.so_phong, p.tang, p.trang_thai,
+                            lp.ma_loai_phong, lp.ten_loai_phong, lp.gia_theo_ngay, lp.suc_chua
+                     FROM phong p
+                     JOIN loai_phong lp ON p.ma_loai_phong = lp.ma_loai_phong
+                     WHERE 1=1"""
+            params = []
+            if trang_thai:
+                sql += " AND p.trang_thai = %s"
+                params.append(trang_thai)
+            if tang:
+                sql += " AND p.tang = %s"
+                params.append(tang)
+            sql += " ORDER BY p.so_phong"
+            cursor.execute(sql, params)
+            return cursor.fetchall()
+    except Exception as e:
+        print(f"Loi truy van danh sach phong: {e}")
+        return []
+    finally:
+        close_connection(conn)
+
+def lay_phong_theo_ma(ma_phong):
+    """Lay thong tin 1 phong theo ma."""
+    conn = get_connection()
+    if not conn:
+        return None
+    try:
+        with conn.cursor() as cursor:
+            sql = """SELECT p.*, lp.ten_loai_phong, lp.gia_theo_ngay
+                     FROM phong p
+                     JOIN loai_phong lp ON p.ma_loai_phong = lp.ma_loai_phong
+                     WHERE p.ma_phong = %s"""
+            cursor.execute(sql, (ma_phong,))
+            return cursor.fetchone()
+    except Exception as e:
+        print(f"Loi truy van phong: {e}")
+        return None
+    finally:
+        close_connection(conn)
+
+def them_phong(so_phong, ma_loai_phong, tang):
+    """Them phong moi. Tra ve (success, message)."""
+    import pymysql
+    conn = get_connection()
+    if not conn:
+        return False, "Khong the ket noi CSDL"
+    try:
+        with conn.cursor() as cursor:
+            sql = "INSERT INTO phong (so_phong, ma_loai_phong, tang, trang_thai) VALUES (%s, %s, %s, 'Trong')"
+            cursor.execute(sql, (so_phong, ma_loai_phong, tang))
+        conn.commit()
+        return True, "Thêm phòng thành công!"
+    except pymysql.err.IntegrityError:
+        return False, "Số phòng đã tồn tại!"
+    except Exception as e:
+        return False, f"Lỗi thêm phòng: {e}"
+    finally:
+        close_connection(conn)
+
+def sua_phong(ma_phong, so_phong, ma_loai_phong, tang, trang_thai):
+    """
+    Cap nhat thong tin phong.
+    Quy tac nghiep vu: khong duoc doi ma_loai_phong khi phong đang DaDat hoac DangSuDung.
+    """
+    import pymysql
+    conn = get_connection()
+    if not conn:
+        return False, "Khong the ket noi CSDL"
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT ma_loai_phong, trang_thai FROM phong WHERE ma_phong = %s", (ma_phong,))
+            hien_tai = cursor.fetchone()
+            if hien_tai:
+                if hien_tai['trang_thai'] in ('DaDat', 'DangSuDung') and int(hien_tai['ma_loai_phong']) != int(ma_loai_phong):
+                    return False, "Không thể đổi loại phòng khi phòng đang có khách đặt hoặc đang sử dụng!"
+            
+            sql = """UPDATE phong SET so_phong = %s, ma_loai_phong = %s, tang = %s, trang_thai = %s
+                     WHERE ma_phong = %s"""
+            cursor.execute(sql, (so_phong, ma_loai_phong, tang, trang_thai, ma_phong))
+        conn.commit()
+        return True, "Cập nhật phòng thành công!"
+    except pymysql.err.IntegrityError:
+        return False, "Số phòng đã tồn tại!"
+    except pymysql.err.OperationalError as e:
+        if '45000' in str(e):
+            return False, "Không thể đổi loại phòng khi phòng đang có khách đặt hoặc đang sử dụng!"
+        return False, f"Lỗi cập nhật phòng: {e}"
+    except Exception as e:
+        return False, f"Lỗi cập nhật phòng: {e}"
+    finally:
+        close_connection(conn)
+
+def xoa_phong(ma_phong):
+    """
+    Xoa phong. Trigger trg_KiemTraXoaPhong / Python check se chan neu phong dang DaDat/DangSuDung.
+    """
+    import pymysql
+    conn = get_connection()
+    if not conn:
+        return False, "Khong the ket noi CSDL"
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT trang_thai FROM phong WHERE ma_phong = %s", (ma_phong,))
+            hien_tai = cursor.fetchone()
+            if hien_tai and hien_tai['trang_thai'] in ('DaDat', 'DangSuDung'):
+                return False, "Không thể xóa phòng đang có khách đặt hoặc đang sử dụng!"
+            cursor.execute("DELETE FROM phong WHERE ma_phong = %s", (ma_phong,))
+        conn.commit()
+        return True, "Xóa phòng thành công!"
+    except pymysql.err.OperationalError as e:
+        if '45000' in str(e):
+            return False, "Không thể xóa phòng đang có khách đặt hoặc đang sử dụng!"
+        return False, f"Lỗi xóa phòng: {e}"
+    except Exception as e:
+        return False, f"Lỗi xóa phòng: {e}"
+    finally:
+        close_connection(conn)
+
+# 5b. QUAN LY LOAI PHONG
+
+def lay_danh_sach_loai_phong():
+    """Lay danh sach tat ca loai phong."""
+    conn = get_connection()
+    if not conn:
+        return []
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT * FROM loai_phong ORDER BY ma_loai_phong")
+            return cursor.fetchall()
+    except Exception as e:
+        print(f"Loi truy van loai phong: {e}")
+        return []
+    finally:
+        close_connection(conn)
+
+def lay_loai_phong_theo_ma(ma_loai_phong):
+    """Lay thong tin 1 loai phong theo ma."""
+    conn = get_connection()
+    if not conn:
+        return None
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT * FROM loai_phong WHERE ma_loai_phong = %s", (ma_loai_phong,))
+            return cursor.fetchone()
+    except Exception as e:
+        print(f"Loi truy van loai phong: {e}")
+        return None
+    finally:
+        close_connection(conn)
+
+def them_loai_phong(ten_loai_phong, gia_theo_ngay, suc_chua, mo_ta):
+    """Them loai phong moi."""
+    conn = get_connection()
+    if not conn:
+        return False, "Khong the ket noi CSDL"
+    try:
+        with conn.cursor() as cursor:
+            sql = "INSERT INTO loai_phong (ten_loai_phong, gia_theo_ngay, suc_chua, mo_ta) VALUES (%s, %s, %s, %s)"
+            cursor.execute(sql, (ten_loai_phong, gia_theo_ngay, suc_chua, mo_ta))
+        conn.commit()
+        return True, "Thêm loại phòng thành công!"
+    except Exception as e:
+        return False, f"Lỗi thêm loại phòng: {e}"
+    finally:
+        close_connection(conn)
+
+def sua_loai_phong(ma_loai_phong, ten_loai_phong, gia_theo_ngay, suc_chua, mo_ta):
+    """Cap nhat thong tin loai phong va don gia theo ngay."""
+    conn = get_connection()
+    if not conn:
+        return False, "Khong the ket noi CSDL"
+    try:
+        with conn.cursor() as cursor:
+            sql = """UPDATE loai_phong SET ten_loai_phong = %s, gia_theo_ngay = %s, suc_chua = %s, mo_ta = %s
+                     WHERE ma_loai_phong = %s"""
+            cursor.execute(sql, (ten_loai_phong, gia_theo_ngay, suc_chua, mo_ta, ma_loai_phong))
+        conn.commit()
+        return True, "Cập nhật loại phòng thành công!"
+    except Exception as e:
+        return False, f"Lỗi cập nhật loại phòng: {e}"
+    finally:
+        close_connection(conn)
+
+def xoa_loai_phong(ma_loai_phong):
+    """Xoa loai phong. Se loi neu con phong thuoc loai nay (FK RESTRICT)."""
+    import pymysql
+    conn = get_connection()
+    if not conn:
+        return False, "Khong the ket noi CSDL"
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("DELETE FROM loai_phong WHERE ma_loai_phong = %s", (ma_loai_phong,))
+        conn.commit()
+        return True, "Xóa loại phòng thành công!"
+    except pymysql.err.IntegrityError:
+        return False, "Không thể xóa loại phòng đang có phòng sử dụng!"
+    except Exception as e:
+        return False, f"Lỗi xóa loại phòng: {e}"
+    finally:
+        close_connection(conn)
+
+# 5c. QUAN LY DICH VU
+
+def lay_danh_sach_dich_vu():
+    """Lay danh sach tat ca dich vu."""
+    conn = get_connection()
+    if not conn:
+        return []
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT * FROM dich_vu ORDER BY ma_dich_vu")
+            return cursor.fetchall()
+    except Exception as e:
+        print(f"Loi truy van dich vu: {e}")
+        return []
+    finally:
+        close_connection(conn)
+
+def them_dich_vu(ten_dich_vu, don_gia, don_vi_tinh):
+    """Them dich vu moi."""
+    conn = get_connection()
+    if not conn:
+        return False, "Khong the ket noi CSDL"
+    try:
+        with conn.cursor() as cursor:
+            sql = "INSERT INTO dich_vu (ten_dich_vu, don_gia, don_vi_tinh) VALUES (%s, %s, %s)"
+            cursor.execute(sql, (ten_dich_vu, don_gia, don_vi_tinh))
+        conn.commit()
+        return True, "Thêm dịch vụ thành công!"
+    except Exception as e:
+        return False, f"Lỗi thêm dịch vụ: {e}"
+    finally:
+        close_connection(conn)
+
+def sua_dich_vu(ma_dich_vu, ten_dich_vu, don_gia, don_vi_tinh):
+    """Cap nhat thong tin dich vu va don gia."""
+    conn = get_connection()
+    if not conn:
+        return False, "Khong the ket noi CSDL"
+    try:
+        with conn.cursor() as cursor:
+            sql = "UPDATE dich_vu SET ten_dich_vu = %s, don_gia = %s, don_vi_tinh = %s WHERE ma_dich_vu = %s"
+            cursor.execute(sql, (ten_dich_vu, don_gia, don_vi_tinh, ma_dich_vu))
+        conn.commit()
+        return True, "Cập nhật dịch vụ thành công!"
+    except Exception as e:
+        return False, f"Lỗi cập nhật dịch vụ: {e}"
+    finally:
+        close_connection(conn)
+
+def xoa_dich_vu(ma_dich_vu):
+    """Xoa dich vu. Se loi neu dich vu đang duoc su dung (FK RESTRICT)."""
+    import pymysql
+    conn = get_connection()
+    if not conn:
+        return False, "Khong the ket noi CSDL"
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("DELETE FROM dich_vu WHERE ma_dich_vu = %s", (ma_dich_vu,))
+        conn.commit()
+        return True, "Xóa dịch vụ thành công!"
+    except pymysql.err.IntegrityError:
+        return False, "Không thể xóa dịch vụ đang được sử dụng!"
+    except Exception as e:
+        return False, f"Lỗi xóa dịch vụ: {e}"
+    finally:
+        close_connection(conn)
+
+def lay_danh_sach_tang():
+    """Lay danh sach cac tang co phong (dung cho filter & so do phong)."""
+    conn = get_connection()
+    if not conn:
+        return []
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT DISTINCT tang FROM phong ORDER BY tang")
+            return [row['tang'] for row in cursor.fetchall()]
+    except Exception as e:
+        print(f"Loi truy van tang: {e}")
+        return []
+    finally:
+        close_connection(conn)

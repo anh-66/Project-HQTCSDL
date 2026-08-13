@@ -2,21 +2,26 @@ from flask import Flask, jsonify, render_template, session
 from db.connection import get_connection, close_connection
 from config import Config
 
-# Blueprint Auth & Admin (Thanh vien 2)
 from routes.auth_routes import auth_bp
 from routes.khach_hang_routes import kh_bp
 
-# Blueprint Dat phong & Check-in (Thanh vien 4)
 from routes.dat_phong_routes import dat_phong_bp
 from routes.luu_tru_routes import luu_tru_bp
 
+from routes.phong_routes import phong_bp
+from routes.dich_vu_routes import dich_vu_bp
+
 app = Flask(__name__)
 app.config.from_object(Config)
+app.secret_key = app.config.get('SECRET_KEY', 'khach-san-secret-key-2024')
+app.json.ensure_ascii = False
 
 app.register_blueprint(auth_bp)
 app.register_blueprint(kh_bp)
 app.register_blueprint(dat_phong_bp)
 app.register_blueprint(luu_tru_bp)
+app.register_blueprint(phong_bp)
+app.register_blueprint(dich_vu_bp)
 
 @app.route('/')
 def trang_chu():
@@ -25,14 +30,13 @@ def trang_chu():
 @app.route('/test-db')
 def test_db():
     """
-    Route này dùng để kiểm tra thử thành quả của Thành viên 1:
-    Kiểm tra xem Flask có kết nối thành công tới MySQL qua PyMySQL hay không.
+    Route này dùng để kiểm tra thử kết nối Cơ sở dữ liệu:
+    Kiểm tra xem Flask có kết nối thành công tới MySQL và lấy thông tin version hay không.
     """
     conn = get_connection()
     if conn:
         try:
             with conn.cursor() as cursor:
-                # Chạy thử một câu truy vấn đơn giản để lấy version của MySQL
                 cursor.execute("SELECT VERSION() as version")
                 result = cursor.fetchone()
                 return jsonify({
@@ -54,4 +58,4 @@ def test_db():
         }), 500
 
 if __name__ == '__main__':
-    app.run(host='127.0.0.1', port=5000, debug=True)
+    app.run(debug=True, port=5000)
