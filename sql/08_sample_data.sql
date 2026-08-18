@@ -1,3 +1,5 @@
+SET NAMES utf8mb4;
+SET CHARACTER SET utf8mb4;
 -- 08_sample_data.sql: Dữ liệu mẫu thử nghiệm hệ thống
 USE hotel_management;
 
