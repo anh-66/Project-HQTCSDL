@@ -634,7 +634,9 @@ def lay_danh_sach_tang():
 # 4. ĐẶT PHÒNG, CHECK-IN & QUẢN LÝ PHIẾU ĐẶT (MEMBER 4)
 # ===========================================================================
 
-def dat_phong_sp(ma_kh, ma_nv, nguon_dat, ma_phong, ngay_nhan, ngay_tra):
+def dat_phong_sp(ma_kh, ma_nv, nguon_dat, ma_phong, ngay_nhan_du_kien=None, ngay_tra_du_kien=None, ngay_nhan=None, ngay_tra=None):
+    ngay_nhan = ngay_nhan_du_kien or ngay_nhan
+    ngay_tra = ngay_tra_du_kien or ngay_tra
     conn = get_connection()
     if not conn:
         return False, "Không thể kết nối CSDL"

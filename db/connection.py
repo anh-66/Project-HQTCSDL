@@ -19,7 +19,8 @@ def get_connection():
             database=Config.DB_CONFIG['database'],
             port=Config.DB_CONFIG['port'],
             cursorclass=pymysql.cursors.DictCursor,
-            charset='utf8mb4'
+            charset='utf8mb4',
+            init_command="SET NAMES utf8mb4"
         )
         return connection
     except pymysql.MySQLError as e:
