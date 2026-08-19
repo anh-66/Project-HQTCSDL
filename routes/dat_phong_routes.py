@@ -207,9 +207,11 @@ def walk_in():
                 loai_phong_list=loai_phong_list,
                 form=request.form
             )
-        ma_kh = queries.them_khach_hang_tai_quay(ho_ten, cccd, sdt, ngay_sinh, email, dia_chi)
+        ma_kh, message = queries.them_khach_hang_tai_quay(
+            ho_ten, cccd, sdt, ngay_sinh, email, dia_chi
+        )
         if not ma_kh:
-            flash('Khong the tao khach hang. Co the CCCD da duoc su dung.', 'danger')
+            flash(message, 'danger')
             return render_template(
                 'dat_phong/walk_in.html',
                 loai_phong_list=loai_phong_list,
