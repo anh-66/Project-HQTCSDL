@@ -10,6 +10,7 @@ from routes.luu_tru_routes import luu_tru_bp
 
 from routes.phong_routes import phong_bp
 from routes.dich_vu_routes import dich_vu_bp
+from routes.hoa_don_routes import hoa_don_bp
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -22,6 +23,7 @@ app.register_blueprint(dat_phong_bp)
 app.register_blueprint(luu_tru_bp)
 app.register_blueprint(phong_bp)
 app.register_blueprint(dich_vu_bp)
+app.register_blueprint(hoa_don_bp)
 
 @app.route('/')
 def trang_chu():

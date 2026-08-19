@@ -1,0 +1,83 @@
+{% extends 'layout.html' %}
+
+{% block title %}Quản lý Hóa đơn — Quản lý Khách sạn{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4><i class="bi bi-receipt text-primary"></i> Quản lý Hóa đơn Thanh toán</h4>
+    <a href="{{ url_for('luu_tru.check_out') }}" class="btn btn-primary btn-sm fw-semibold">
+        <i class="bi bi-plus-lg me-1"></i>Check-out / Lập Hóa đơn mới
+    </a>
+</div>
+
+<div class="card border-0 shadow-sm rounded-3">
+    <div class="card-header bg-dark text-white py-3">
+        <h6 class="card-title mb-0 fw-bold">
+            <i class="bi bi-list-check me-2 text-warning"></i>Danh sách Hóa đơn
+        </h6>
+    </div>
+    <div class="card-body p-0">
+        {% if danh_sach_hd %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Mã HĐ</th>
+                        <th>Khách hàng</th>
+                        <th>Lễ tân lập</th>
+                        <th class="text-end">Tiền phòng</th>
+                        <th class="text-end">Tiền dịch vụ</th>
+                        <th class="text-end">Giảm giá</th>
+                        <th class="text-end">Tổng thanh toán</th>
+                        <th class="text-center">Trạng thái</th>
+                        <th>Ngày lập</th>
+                        <th class="text-center">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for hd in danh_sach_hd %}
+                    {% set target_id = hd.ma_dat_phong if hd.ma_dat_phong else hd.ma_hoa_don %}
+                    <tr>
+                        <td><span class="badge bg-secondary">#HĐ{{ hd.ma_hoa_don }}</span></td>
+                        <td class="fw-semibold">{{ hd.ten_khach_hang }}</td>
+                        <td>{{ hd.ten_le_tan or 'N/A' }}</td>
+                        <td class="text-end">{{ "{:,.0f}".format(hd.tong_tien_phong) }}đ</td>
+                        <td class="text-end">{{ "{:,.0f}".format(hd.tong_tien_dich_vu) }}đ</td>
+                        <td class="text-end text-muted">-{{ "{:,.0f}".format(hd.giam_gia) }}đ</td>
+                        <td class="text-end fw-bold text-danger">{{ "{:,.0f}".format(hd.tong_thanh_toan) }} VNĐ</td>
+                        <td class="text-center">
+                            {% if hd.trang_thai_tt == 'DaThanhToan' %}
+                            <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Đã thanh toán</span>
+                            {% else %}
+                            <span class="badge bg-warning text-dark"><i class="bi bi-clock-history me-1"></i>Chưa thanh toán</span>
+                            {% endif %}
+                        </td>
+                        <td><small class="text-muted">{{ hd.ngay_lap.strftime('%H:%M %d/%m/%Y') if hd.ngay_lap and hd.ngay_lap.strftime else hd.ngay_lap }}</small></td>
+                        <td class="text-center">
+                            <div class="btn-group btn-group-sm">
+                                <a href="{{ url_for('hoa_don.chi_tiet', ma_dat_phong=target_id) }}" class="btn btn-outline-primary" title="Xem chi tiết">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                {% if hd.trang_thai_tt == 'ChuaThanhToan' %}
+                                <form method="POST" action="{{ url_for('hoa_don.thanh_toan', ma_dat_phong=target_id) }}" class="d-inline" onsubmit="return confirm('Xác nhận khách đã hoàn tất thanh toán hóa đơn này?')">
+                                    <button type="submit" class="btn btn-success" title="Xác nhận đã thu tiền">
+                                        <i class="bi bi-check2-circle me-1"></i>Thu tiền
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center text-muted py-5">
+            <i class="bi bi-receipt display-5 mb-2 d-block text-secondary"></i>
+            Chưa có hóa đơn nào trong hệ thống.
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

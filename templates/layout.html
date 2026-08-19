@@ -16,18 +16,17 @@
 </head>
 <body>
 
-<nav class="navbar navbar-expand-lg navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="{{ url_for('trang_chu') }}">
-            <i class="bi bi-building-fill"></i>
-            <span>QL Khách Sạn</span>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
+    <div class="container-fluid px-3 px-lg-4">
+        <a class="navbar-brand fw-bold me-3" href="{{ url_for('trang_chu') }}">
+            <i class="bi bi-building-fill text-warning me-2"></i><span>QL Khách Sạn</span>
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu"
                 aria-controls="navMenu" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navMenu">
-            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0 align-items-center">
                 <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('trang_chu') }}">
                         <i class="bi bi-house-door me-1"></i>Trang chủ
@@ -35,7 +34,7 @@
                 </li>
 
                 {% if session.get('vai_tro') == 'KhachHang' %}
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('dat_phong.tim_phong') }}"><i class="bi bi-search me-1"></i>Tìm phòng</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('dat_phong.dat_phong_online') }}"><i class="bi bi-search me-1"></i>Tìm & Đặt phòng</a></li>
                 <li class="nav-item"><a class="nav-link" href="{{ url_for('dat_phong.lich_su_dat_phong') }}"><i class="bi bi-calendar-check me-1"></i>Lịch sử đặt phòng</a></li>
                 <li class="nav-item"><a class="nav-link" href="{{ url_for('khach_hang.ho_so') }}"><i class="bi bi-person me-1"></i>Hồ sơ của tôi</a></li>
                 {% endif %}
@@ -45,16 +44,72 @@
                 <li class="nav-item"><a class="nav-link" href="{{ url_for('dat_phong.walk_in') }}"><i class="bi bi-person-walk me-1"></i>Walk-in</a></li>
                 <li class="nav-item"><a class="nav-link" href="{{ url_for('dat_phong.quan_ly_dat_phong') }}"><i class="bi bi-journal-text me-1"></i>Quản lý đặt phòng</a></li>
                 <li class="nav-item"><a class="nav-link" href="{{ url_for('phong.danh_sach') }}"><i class="bi bi-building me-1"></i>Tra cứu phòng</a></li>
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('dich_vu.danh_sach') }}"><i class="bi bi-cup-hot me-1"></i>Dịch vụ</a></li>
+
+                <!-- Menu gộp Dịch vụ & Thanh toán cho Lễ tân -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle active fw-semibold" href="#" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-receipt-cutoff me-1"></i>Dịch vụ &amp; Thanh toán
+                    </a>
+                    <ul class="dropdown-menu shadow">
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('dich_vu.danh_sach') }}">
+                                <i class="bi bi-cup-hot me-2 text-primary"></i>Danh mục Dịch vụ
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('luu_tru.su_dung_dich_vu') }}">
+                                <i class="bi bi-plus-circle me-2 text-success"></i>Sử dụng Dịch vụ
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('luu_tru.check_out') }}">
+                                <i class="bi bi-door-closed me-2 text-danger"></i>Check-out / Lập Hóa đơn
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('hoa_don.danhsach') }}">
+                                <i class="bi bi-receipt me-2 text-warning"></i>Quản lý Hóa đơn
+                            </a>
+                        </li>
+                    </ul>
+                </li>
                 <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.ho_so_nhan_vien') }}"><i class="bi bi-person me-1"></i>Hồ sơ của tôi</a></li>
                 {% endif %}
 
                 {% if session.get('vai_tro') == 'Admin' %}
                 <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle fw-semibold" href="#" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-receipt-cutoff me-1"></i>Nghiệp vụ Lưu trú &amp; Hóa đơn
+                    </a>
+                    <ul class="dropdown-menu shadow">
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('luu_tru.danh_sach_checkin') }}">
+                                <i class="bi bi-door-open me-2 text-info"></i>Danh sách Check-in
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('luu_tru.su_dung_dich_vu') }}">
+                                <i class="bi bi-plus-circle me-2 text-success"></i>Ghi nhận Sử dụng Dịch vụ
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('luu_tru.check_out') }}">
+                                <i class="bi bi-door-closed me-2 text-danger"></i>Check-out / Lập Hóa đơn
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('hoa_don.danhsach') }}">
+                                <i class="bi bi-receipt me-2 text-warning"></i>Quản lý Hóa đơn
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+                <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="bi bi-gear me-1"></i>Quản trị
                     </a>
-                    <ul class="dropdown-menu">
+                    <ul class="dropdown-menu shadow">
                         <li>
                             <a class="dropdown-item" href="{{ url_for('auth.admin_danh_sach_nhan_vien') }}">
                                 <i class="bi bi-people me-2 text-primary"></i>Quản lý nhân viên
@@ -72,7 +127,7 @@
                         </li>
                         <li>
                             <a class="dropdown-item" href="{{ url_for('dich_vu.danh_sach') }}">
-                                <i class="bi bi-cup-hot me-2 text-primary"></i>Quản lý dịch vụ
+                                <i class="bi bi-cup-hot me-2 text-primary"></i>Quản lý danh mục dịch vụ
                             </a>
                         </li>
                     </ul>
@@ -85,7 +140,7 @@
                 {% if session.get('user_id') %}
                 <li class="nav-item">
                     <span class="navbar-text text-white me-1">
-                        <i class="bi bi-person-circle"></i> {{ session.get('ho_ten') }}
+                        <i class="bi bi-person-circle text-warning me-1"></i>{{ session.get('ho_ten') }}
                         <span class="badge bg-secondary ms-1">{{ session.get('vai_tro') }}</span>
                     </span>
                 </li>
@@ -127,9 +182,9 @@
     {% block content %}{% endblock %}
 </div>
 
-<footer class="text-center py-3">
-    <small>
-        <i class="bi bi-stars me-1"></i>
+<footer class="text-center py-3 border-top mt-auto">
+    <small class="text-muted">
+        <i class="bi bi-stars me-1 text-warning"></i>
         Đồ án môn Hệ quản trị Cơ sở dữ liệu &mdash; Hệ thống Quản lý Khách sạn
     </small>
 </footer>
