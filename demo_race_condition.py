@@ -1,6 +1,24 @@
+import sys
 import threading
 import time
 from db.connection import get_connection, close_connection
+
+# Dam bao in tieng Viet tren Windows console khong bi loi charmap/encoding
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
+
+def get_sample_room_id():
+    conn = get_connection()
+    if conn:
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT ma_phong FROM phong ORDER BY ma_phong LIMIT 1")
+                row = cursor.fetchone()
+                if row:
+                    return row['ma_phong']
+        finally:
+            close_connection(conn)
+    return 1
 
 def book_room(thread_name, ma_kh, ma_nv, nguon_dat, ma_phong, check_in, check_out):
     conn = get_connection()
@@ -36,9 +54,11 @@ if __name__ == "__main__":
     ma_kh_1, ma_kh_2 = 1, 2
     ma_nv = 1
     nguon_dat = 'Online'
-    ma_phong = 1
-    check_in = '2023-12-01'
-    check_out = '2023-12-05'
+    ma_phong = get_sample_room_id()
+    check_in = '2026-12-01'
+    check_out = '2026-12-05'
+
+    print(f"Thực hiện test trên Mã phòng = {ma_phong}")
 
     # Tạo 2 luồng đặt phòng cùng lúc
     t1 = threading.Thread(target=book_room, args=("User 1", ma_kh_1, ma_nv, nguon_dat, ma_phong, check_in, check_out))

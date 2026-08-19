@@ -588,3 +588,72 @@ footer small {
   }
 }
 
+
+
+/* ============ NAVBAR & OVERFLOW FIXES ============ */
+.navbar-nav .nav-link {
+  white-space: nowrap !important;
+  font-size: 0.85rem !important;
+  padding: 0.45rem 0.6rem !important;
+  font-weight: 500;
+}
+
+.navbar-brand,
+.navbar-text,
+.dropdown-item {
+  white-space: nowrap !important;
+}
+
+.navbar-text {
+  font-size: 0.85rem !important;
+}
+
+.navbar .btn-sm {
+  white-space: nowrap !important;
+  padding: 5px 12px !important;
+  font-size: 0.8rem !important;
+}
+
+/* Card Headers & Themes for NV5 Pages */
+.card-header.bg-primary {
+  background: linear-gradient(135deg, #0d2b6b 0%, #1a56db 100%) !important;
+  color: #fff !important;
+}
+
+.card-header.bg-dark {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
+  color: #fff !important;
+}
+
+
+/* ============ CARD HEADER CONTRAST & VISIBILITY FIX ============ */
+.card-header.bg-dark,
+.card-header.bg-dark *,
+.card-header.bg-dark .card-title,
+.card-header.bg-dark h1, .card-header.bg-dark h2, .card-header.bg-dark h3,
+.card-header.bg-dark h4, .card-header.bg-dark h5, .card-header.bg-dark h6,
+.card-header.bg-dark span, .card-header.bg-dark p, .card-header.bg-dark div,
+.card-header.bg-primary,
+.card-header.bg-primary *,
+.card-header.bg-primary .card-title,
+.card-header.bg-primary h1, .card-header.bg-primary h2, .card-header.bg-primary h3,
+.card-header.bg-primary h4, .card-header.bg-primary h5, .card-header.bg-primary h6,
+.card-header.bg-primary span, .card-header.bg-primary p, .card-header.bg-primary div {
+  color: #ffffff !important;
+}
+
+.card-header.bg-dark i.text-warning, .card-header.bg-primary i.text-warning {
+  color: #fbbf24 !important;
+}
+
+.card-header.bg-dark i.text-primary, .card-header.bg-primary i.text-primary {
+  color: #60a5fa !important;
+}
+
+.card-header.bg-dark i.text-info, .card-header.bg-primary i.text-info {
+  color: #38bdf8 !important;
+}
+
+.card-header.bg-dark i.text-success, .card-header.bg-primary i.text-success {
+  color: #34d399 !important;
+}

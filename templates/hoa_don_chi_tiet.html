@@ -1,0 +1,108 @@
+{% extends 'layout.html' %}
+
+{% block title %}Chi tiết Hóa đơn #HĐ{{ hoa_don.ma_hoa_don }} — Quản lý Khách sạn{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-lg rounded-3">
+            <div class="card-header bg-dark text-white py-4 text-center">
+                <h4 class="mb-1 fw-bold"><i class="bi bi-building me-2"></i>HÓA ĐƠN THANH TOÁN KHÁCH SẠN</h4>
+                <p class="mb-0 text-white-50">Mã hóa đơn: #HĐ{{ hoa_don.ma_hoa_don }} &mdash; Phòng {{ hoa_don.so_phong }}</p>
+            </div>
+            <div class="card-body p-4 p-md-5">
+                <!-- Thông tin chung -->
+                <div class="row mb-4">
+                    <div class="col-sm-6 mb-3 mb-sm-0">
+                        <h6 class="fw-bold text-muted mb-2">KHÁCH HÀNG</h6>
+                        <h5 class="fw-bold text-primary mb-1">{{ hoa_don.ten_khach_hang }}</h5>
+                        <p class="mb-0 text-muted"><i class="bi bi-telephone me-1"></i>{{ hoa_don.sdt }}</p>
+                    </div>
+                    <div class="col-sm-6 text-sm-end">
+                        <h6 class="fw-bold text-muted mb-2">THÔNG TIN HÓA ĐƠN</h6>
+                        <p class="mb-1"><strong>Ngày lập:</strong> {{ hoa_don.ngay_lap.strftime('%H:%M %d/%m/%Y') if hoa_don.ngay_lap and hoa_don.ngay_lap.strftime else hoa_don.ngay_lap }}</p>
+                        <p class="mb-1"><strong>Lễ tân lập:</strong> {{ hoa_don.ten_le_tan or 'Hệ thống' }}</p>
+                        <p class="mb-0"><strong>Phương thức:</strong> {{ hoa_don.phuong_thuc_tt }}</p>
+                    </div>
+                </div>
+
+                <hr class="my-4">
+
+                <!-- Bảng chi tiết dịch vụ đã dùng -->
+                <h6 class="fw-bold mb-3"><i class="bi bi-list-check me-2"></i>CHI TIẾT DỊCH VỤ SỬ DỤNG</h6>
+                {% if danh_sach_dv %}
+                <div class="table-responsive mb-4">
+                    <table class="table table-bordered align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>#</th>
+                                <th>Tên dịch vụ</th>
+                                <th class="text-center">Số lượng</th>
+                                <th class="text-end">Đơn giá</th>
+                                <th class="text-end">Thành tiền</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for dv in danh_sach_dv %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td class="fw-semibold">{{ dv.ten_dich_vu }}</td>
+                                <td class="text-center">{{ dv.so_luong }}</td>
+                                <td class="text-end">{{ "{:,.0f}".format(dv.don_gia) }}đ</td>
+                                <td class="text-end fw-bold">{{ "{:,.0f}".format(dv.thanh_tien) }}đ</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted small mb-4">Không có dịch vụ phát sinh.</p>
+                {% endif %}
+
+                <!-- Tổng kết tiền -->
+                <div class="row justify-content-end mb-4">
+                    <div class="col-md-6">
+                        <div class="p-3 bg-light rounded-3">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Tổng tiền phòng:</span>
+                                <strong>{{ "{:,.0f}".format(hoa_don.tong_tien_phong) }} VNĐ</strong>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Tổng tiền dịch vụ:</span>
+                                <strong>{{ "{:,.0f}".format(hoa_don.tong_tien_dich_vu) }} VNĐ</strong>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2 text-muted">
+                                <span>Giảm giá:</span>
+                                <strong>-{{ "{:,.0f}".format(hoa_don.giam_gia) }} VNĐ</strong>
+                            </div>
+                            <hr class="my-2">
+                            <div class="d-flex justify-content-between fs-5 fw-bold text-danger">
+                                <span>TỔNG THANH TOÁN:</span>
+                                <span>{{ "{:,.0f}".format(hoa_don.tong_thanh_toan) }} VNĐ</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mt-4">
+                    <a href="{{ url_for('hoa_don.danhsach') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i>Quay lại danh sách
+                    </a>
+
+                    {% if hoa_don.trang_thai_tt == 'ChuaThanhToan' %}
+                    <form method="POST" action="{{ url_for('hoa_don.thanh_toan', ma_dat_phong=hoa_don.ma_dat_phong) }}" onsubmit="return confirm('Xác nhận nhận tiền và đổi trạng thái Đã thanh toán?')">
+                        <button type="submit" class="btn btn-success btn-lg fw-bold">
+                            <i class="bi bi-check-lg me-1"></i>Xác Nhận Đã Thu Tiền
+                        </button>
+                    </form>
+                    {% else %}
+                    <span class="badge bg-success fs-6 py-2 px-3">
+                        <i class="bi bi-check-circle-fill me-1"></i>Đã Thanh Toán Hoàn Tất
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

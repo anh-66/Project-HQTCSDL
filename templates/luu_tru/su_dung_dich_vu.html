@@ -1,0 +1,145 @@
+{% extends 'layout.html' %}
+
+{% block title %}Ghi nhận Sử dụng Dịch vụ — Quản lý Khách sạn{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4><i class="bi bi-cup-hot text-primary"></i> Ghi nhận Dịch vụ Phát sinh</h4>
+</div>
+
+<div class="row g-4">
+    <!-- Cột trái: Form chọn phòng và dịch vụ -->
+    <div class="col-lg-5">
+        <div class="card border-0 shadow-sm rounded-3">
+            <div class="card-header bg-dark text-white py-3">
+                <h6 class="card-title mb-0 fw-bold">
+                    <i class="bi bi-plus-circle me-2 text-warning"></i>1. Chọn phòng &amp; Dịch vụ
+                </h6>
+            </div>
+            <div class="card-body p-4">
+                <!-- Select chọn phòng đang lưu trú -->
+                <form method="GET" action="{{ url_for('luu_tru.su_dung_dich_vu') }}" class="mb-4">
+                    <label for="select_phong" class="form-label fw-bold">Chọn phòng đang lưu trú:</label>
+                    <div class="input-group">
+                        <select name="ma_dat_phong" id="select_phong" class="form-select" onchange="this.form.submit()">
+                            <option value="">-- Chọn phòng --</option>
+                            {% for p in phong_list %}
+                            <option value="{{ p.ma_dat_phong }}" {% if ma_dat_phong_selected == p.ma_dat_phong %}selected{% endif %}>
+                                Phòng {{ p.so_phong }} &mdash; Khách: {{ p.ten_khach_hang }} (Đơn #{{ p.ma_dat_phong }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="btn btn-outline-primary">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                </form>
+
+                {% if ma_dat_phong_selected and phong_selected_info %}
+                <hr>
+                <form method="POST" action="{{ url_for('luu_tru.su_dung_dich_vu') }}">
+                    <input type="hidden" name="ma_dat_phong" value="{{ phong_selected_info.ma_dat_phong }}">
+                    <input type="hidden" name="ma_phong" value="{{ phong_selected_info.ma_phong }}">
+
+                    <div class="alert alert-info py-2">
+                        <small>
+                            <strong>Đang chọn:</strong> Phòng {{ phong_selected_info.so_phong }} |
+                            Khách: {{ phong_selected_info.ten_khach_hang }}
+                        </small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="ma_dich_vu" class="form-label fw-bold">Chọn dịch vụ:</label>
+                        <select name="ma_dich_vu" id="ma_dich_vu" class="form-select" required>
+                            <option value="">-- Chọn dịch vụ --</option>
+                            {% for dv in dich_vu_list %}
+                            <option value="{{ dv.ma_dich_vu }}">
+                                {{ dv.ten_dich_vu }} &mdash; {{ "{:,.0f}".format(dv.don_gia) }} VNĐ / {{ dv.don_vi_tinh }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="so_luong" class="form-label fw-bold">Số lượng:</label>
+                        <input type="number" name="so_luong" id="so_luong" class="form-control" value="1" min="1" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">
+                        <i class="bi bi-check-lg me-1"></i>Thêm dịch vụ
+                    </button>
+                </form>
+                {% else %}
+                <div class="text-center text-muted py-4">
+                    <i class="bi bi-info-circle display-6 mb-2 d-block text-primary"></i>
+                    Vui lòng chọn phòng ở bước trên để ghi nhận dịch vụ.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Cột phải: Bảng hiển thị dịch vụ phòng đã dùng -->
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm rounded-3">
+            <div class="card-header bg-dark text-white py-3 d-flex justify-content-between align-items-center">
+                <h6 class="card-title mb-0 fw-bold">
+                    <i class="bi bi-list-stars me-2 text-warning"></i>Dịch vụ đã sử dụng
+                </h6>
+                {% if phong_selected_info %}
+                <span class="badge bg-warning text-dark fs-6">Phòng {{ phong_selected_info.so_phong }}</span>
+                {% endif %}
+            </div>
+            <div class="card-body p-0">
+                {% if ma_dat_phong_selected %}
+                    {% if dich_vu_da_dung_list %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Tên dịch vụ</th>
+                                    <th class="text-center">Số lượng</th>
+                                    <th class="text-end">Đơn giá</th>
+                                    <th class="text-end">Thành tiền</th>
+                                    <th>Thời gian</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% set ns = namespace(tong=0) %}
+                                {% for dv in dich_vu_da_dung_list %}
+                                {% set ns.tong = ns.tong + dv.thanh_tien %}
+                                <tr>
+                                    <td class="fw-semibold">{{ dv.ten_dich_vu }}</td>
+                                    <td class="text-center"><span class="badge bg-secondary">{{ dv.so_luong }}</span></td>
+                                    <td class="text-end">{{ "{:,.0f}".format(dv.don_gia) }}đ</td>
+                                    <td class="text-end fw-bold text-success">{{ "{:,.0f}".format(dv.thanh_tien) }}đ</td>
+                                    <td><small class="text-muted">{{ dv.ngay_su_dung.strftime('%H:%M %d/%m/%Y') if dv.ngay_su_dung and dv.ngay_su_dung.strftime else dv.ngay_su_dung }}</small></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="table-light">
+                                <tr>
+                                    <td colspan="3" class="fw-bold text-end">Tổng tiền dịch vụ:</td>
+                                    <td class="text-end fw-bold text-danger fs-6">{{ "{:,.0f}".format(ns.tong) }} VNĐ</td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center text-muted py-5">
+                        <i class="bi bi-basket3 display-5 mb-2 d-block text-secondary"></i>
+                        Phòng này chưa sử dụng dịch vụ nào.
+                    </div>
+                    {% endif %}
+                {% else %}
+                <div class="text-center text-muted py-5">
+                    <i class="bi bi-arrow-left-circle display-5 mb-2 d-block text-secondary"></i>
+                    Vui lòng chọn phòng bên trái để xem danh sách dịch vụ đã phát sinh.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
