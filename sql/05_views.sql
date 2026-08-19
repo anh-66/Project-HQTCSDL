@@ -1,4 +1,3 @@
--- 05_views.sql: Tạo 4 Views chuẩn hóa theo tên trong giaoTac-obj.docx
 USE hotel_management;
 
 -- View 1: vw_DanhSachPhongTrong
@@ -48,6 +47,7 @@ JOIN dich_vu dv ON sd.ma_dich_vu = dv.ma_dich_vu;
 CREATE OR REPLACE VIEW vw_BaoCaoDoanhThuHoaDon AS
 SELECT 
     hd.ma_hoa_don,
+    hd.ma_dat_phong,
     kh.ho_ten AS ten_khach_hang,
     nv.ho_ten AS ten_le_tan,
     hd.tong_tien_phong,
