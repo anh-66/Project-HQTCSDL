@@ -2,6 +2,7 @@ import time
 """
 db/queries.py
 -------------
+Tập hợp tất cả các hàm truy vấn Cơ sở dữ liệu MySQL hoàn chỉnh cho toàn bộ hệ thống (TV1, TV2, TV3, TV4, TV5).
 Bao gồm:
 - Auth, Quản lý Nhân viên & Hồ sơ Khách hàng (TV2)
 - Phòng, Loại phòng & Danh mục Dịch vụ (TV3)
@@ -635,6 +636,50 @@ def lay_danh_sach_tang():
 # ===========================================================================
 
 def dat_phong_sp(ma_kh, ma_nv, nguon_dat, ma_phong, ngay_nhan_du_kien=None, ngay_tra_du_kien=None, ngay_nhan=None, ngay_tra=None):
+    """
+    DEMO LOST UPDATE (MẤT DỮ LIỆU CẬP NHẬT / OVERBOOKING):
+    Bỏ qua khóa CSDL, tạm dừng 5s để cả 2 Tab cùng lọt vào và tạo 2 phiếu đặt trùng cho cùng 1 phòng.
+    """
+    ngay_nhan = ngay_nhan_du_kien or ngay_nhan
+    ngay_tra = ngay_tra_du_kien or ngay_tra
+    conn = get_connection()
+    if not conn:
+        return False, "Không thể kết nối CSDL"
+    try:
+        with conn.cursor() as cursor:
+            # Tạm dừng 5s cho phép Tab 2 bấm cùng lúc
+            print("[LOST UPDATE DEMO] Tạm dừng 5s...")
+            time.sleep(5)
+
+            # Lấy giá phòng
+            cursor.execute("""
+                SELECT lp.gia_theo_ngay 
+                FROM phong p JOIN loai_phong lp ON p.ma_loai_phong = lp.ma_loai_phong
+                WHERE p.ma_phong = %s
+            """, (ma_phong,))
+            row = cursor.fetchone()
+            gia_phong = float(row['gia_theo_ngay']) if row and row.get('gia_theo_ngay') else 500000.0
+
+            # Chèn phiếu đặt mới (Bỏ qua check trùng lịch -> Gây ra Lost Update / Overbooking)
+            cursor.execute("""
+                INSERT INTO dat_phong (ma_kh, ma_nv, nguon_dat, ngay_nhan_du_kien, ngay_tra_du_kien, trang_thai)
+                VALUES (%s, %s, %s, %s, %s, 'DaDat')
+            """, (ma_kh, ma_nv, nguon_dat, ngay_nhan, ngay_tra))
+            
+            ma_dat_phong = cursor.lastrowid
+
+            cursor.execute("""
+                INSERT INTO chi_tiet_dat_phong (ma_dat_phong, ma_phong, gia_tai_thoi_diem)
+                VALUES (%s, %s, %s)
+            """, (ma_dat_phong, ma_phong, gia_phong))
+
+            conn.commit()
+            return True, "[DEMO LOST UPDATE] Đặt phòng thành công!"
+    except Exception as e:
+        conn.rollback()
+        return False, f"Lỗi: {str(e)}"
+    finally:
+        close_connection(conn)
     ngay_nhan = ngay_nhan_du_kien or ngay_nhan
     ngay_tra = ngay_tra_du_kien or ngay_tra
     conn = get_connection()
@@ -956,7 +1001,6 @@ def lay_thong_tin_check_out(ma_dat_phong):
             res1 = cursor.fetchone()
             print(f"[NON-REPEATABLE READ TEST] Đọc lần 1: Tiền DV = {res1.get('tong_tien_dich_vu') if res1 else 0}")
             
-            # Tạm dừng 6 giây để thao tác thêm dịch vụ ở Tab 2
             time.sleep(6)
             
             cursor.execute(sql, (ma_dat_phong,))
@@ -965,6 +1009,36 @@ def lay_thong_tin_check_out(ma_dat_phong):
             return res2
     except Exception as e:
         print(f"Lỗi lay_thong_tin_check_out (test_loi): {e}")
+        return None
+    finally:
+        close_connection(conn)
+    conn = get_connection()
+    if not conn:
+        return None
+    try:
+        with conn.cursor() as cursor:
+            sql = """
+                SELECT 
+                    dp.ma_dat_phong,
+                    kh.ho_ten AS ten_khach_hang,
+                    kh.sdt AS sdt_khach_hang,
+                    p.so_phong,
+                    ct.ma_phong,
+                    ct.gia_tai_thoi_diem,
+                    dp.ngay_nhan_du_kien,
+                    dp.ngay_tra_du_kien,
+                    fn_TinhTienDichVu(dp.ma_dat_phong) AS tong_tien_dich_vu,
+                    fn_TinhTienPhong(dp.ma_dat_phong) AS tong_tien_phong
+                FROM dat_phong dp
+                JOIN khach_hang kh ON dp.ma_kh = kh.ma_kh
+                JOIN chi_tiet_dat_phong ct ON dp.ma_dat_phong = ct.ma_dat_phong
+                JOIN phong p ON ct.ma_phong = p.ma_phong
+                WHERE dp.ma_dat_phong = %s
+            """
+            cursor.execute(sql, (ma_dat_phong,))
+            return cursor.fetchone()
+    except Exception as e:
+        print(f"Lỗi lay_thong_tin_check_out: {e}")
         return None
     finally:
         close_connection(conn)
@@ -1039,6 +1113,7 @@ def lay_chi_tiet_hoa_don(identifier):
         return None
     finally:
         close_connection(conn)
+
 
 def lay_phong_dirty_read(ma_phong):
     conn = get_connection()
