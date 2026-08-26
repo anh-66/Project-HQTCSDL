@@ -1,9 +1,9 @@
--- 03_procedures.sql: Tạo 6 Stored Procedures quản lý giao dịch
+-- 03_procedures.sql: Tạo 6 Stored Procedures quản lý giao dịch hoàn chỉnh & an toàn
 USE hotel_management;
 
 DELIMITER $$
 
--- Procedure 1: sp_TaoDatPhong (Dùng SELECT ... FOR UPDATE chống race condition)
+-- Procedure 1: sp_TaoDatPhong (Dùng SELECT ... FOR UPDATE chống race condition / Lost Update)
 CREATE PROCEDURE sp_TaoDatPhong (
     IN p_ma_kh INT,
     IN p_ma_nv INT,
@@ -27,7 +27,7 @@ BEGIN
 
     START TRANSACTION;
 
-    -- Khóa dòng phòng bằng FOR UPDATE
+    -- Khóa dòng phòng bằng FOR UPDATE (Chống Lost Update / Race Condition đặt trùng phòng)
     SELECT ma_phong INTO v_phong_id FROM phong WHERE ma_phong = p_ma_phong FOR UPDATE;
 
     SELECT COUNT(*) INTO v_conflict_count
@@ -63,7 +63,7 @@ BEGIN
     END IF;
 END$$
 
--- Procedure 2: sp_XacNhanCheckIn
+-- Procedure 2: sp_XacNhanCheckIn (Giao dịch Check-in an toàn)
 CREATE PROCEDURE sp_XacNhanCheckIn (
     IN p_ma_dat_phong INT,
     IN p_ma_phong INT,
@@ -88,7 +88,7 @@ BEGIN
     SET p_message = 'Check-in thành công!';
 END$$
 
--- Procedure 3: sp_GhiNhanSuDungDichVu
+-- Procedure 3: sp_GhiNhanSuDungDichVu (Có Transaction & SQLEXCEPTION Handler)
 CREATE PROCEDURE sp_GhiNhanSuDungDichVu (
     IN p_ma_dat_phong INT,
     IN p_ma_phong INT,
@@ -97,13 +97,22 @@ CREATE PROCEDURE sp_GhiNhanSuDungDichVu (
     OUT p_message VARCHAR(255)
 )
 BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        SET p_message = 'Lỗi hệ thống khi ghi nhận dịch vụ.';
+    END;
+
+    START TRANSACTION;
+
     INSERT INTO su_dung_dich_vu (ma_dat_phong, ma_phong, ma_dich_vu, so_luong)
     VALUES (p_ma_dat_phong, p_ma_phong, p_ma_dich_vu, p_so_luong);
-    
+
+    COMMIT;
     SET p_message = 'Thêm dịch vụ thành công!';
 END$$
 
--- Procedure 4: sp_CheckOut_LapHoaDon
+-- Procedure 4: sp_CheckOut_LapHoaDon (Có START TRANSACTION, FOR UPDATE & SQLEXCEPTION Handler)
 CREATE PROCEDURE sp_CheckOut_LapHoaDon (
     IN p_ma_dat_phong INT,
     IN p_ma_nv INT,
@@ -115,6 +124,18 @@ BEGIN
     DECLARE v_tien_phong DECIMAL(12,2);
     DECLARE v_tien_dv DECIMAL(12,2);
     DECLARE v_tong_thanhtoan DECIMAL(12,2);
+    DECLARE v_lock_id INT;
+
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        SET p_message = 'Lỗi hệ thống khi Check-out và lập hóa đơn.';
+    END;
+
+    START TRANSACTION;
+
+    -- Khóa dòng phiếu đặt để đảm bảo tính nhất quán dữ liệu khi tính toán & lập hóa đơn
+    SELECT ma_dat_phong INTO v_lock_id FROM dat_phong WHERE ma_dat_phong = p_ma_dat_phong FOR UPDATE;
 
     SET v_tien_phong = fn_TinhTienPhong(p_ma_dat_phong);
     SET v_tien_dv = fn_TinhTienDichVu(p_ma_dat_phong);
@@ -133,10 +154,11 @@ BEGIN
         tong_thanh_toan = v_tong_thanhtoan,
         phuong_thuc_tt = p_phuong_thuc_tt;
 
+    COMMIT;
     SET p_message = 'Check-out và lập hóa đơn thành công!';
 END$$
 
--- Procedure 5: sp_XacNhanThanhToan
+-- Procedure 5: sp_XacNhanThanhToan (An toàn với Transaction)
 CREATE PROCEDURE sp_XacNhanThanhToan (
     IN p_ma_dat_phong INT,
     OUT p_message VARCHAR(255)
@@ -157,7 +179,7 @@ BEGIN
     SET p_message = 'Thanh toán thành công và giải phóng phòng!';
 END$$
 
--- Procedure 6: sp_HuyDatPhong (Kiểm tra điều kiện trước 24h)
+-- Procedure 6: sp_HuyDatPhong (Có START TRANSACTION, FOR UPDATE & Kiểm tra điều kiện trước 24h)
 CREATE PROCEDURE sp_HuyDatPhong (
     IN p_ma_dat_phong INT,
     OUT p_message VARCHAR(255)
@@ -166,15 +188,26 @@ BEGIN
     DECLARE v_trang_thai VARCHAR(20);
     DECLARE v_ngay_nhan DATE;
 
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        SET p_message = 'Lỗi hệ thống khi hủy đặt phòng.';
+    END;
+
+    START TRANSACTION;
+
     SELECT trang_thai, ngay_nhan_du_kien INTO v_trang_thai, v_ngay_nhan 
-    FROM dat_phong WHERE ma_dat_phong = p_ma_dat_phong;
+    FROM dat_phong WHERE ma_dat_phong = p_ma_dat_phong FOR UPDATE;
 
     IF v_trang_thai != 'DaDat' THEN
+        ROLLBACK;
         SET p_message = 'Không thể hủy đơn đặt phòng ở trạng thái này.';
     ELSEIF DATEDIFF(v_ngay_nhan, CURDATE()) < 1 THEN
+        ROLLBACK;
         SET p_message = 'Chỉ được phép hủy đặt phòng trước 24 giờ!';
     ELSE
         UPDATE dat_phong SET trang_thai = 'DaHuy' WHERE ma_dat_phong = p_ma_dat_phong;
+        COMMIT;
         SET p_message = 'Hủy đặt phòng thành công!';
     END IF;
 END$$
