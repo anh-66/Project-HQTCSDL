@@ -1,9 +1,16 @@
--- 03_procedures.sql: Tạo 6 Stored Procedures quản lý giao dịch hoàn chỉnh & an toàn
+-- test_loi/sql/03_procedures.sql
+-- (File SQL được chỉnh sửa cố tình để gây ra LỖI 1: Lost Update và LỖI 2: Dirty Read khi demo trên Web)
 USE hotel_management;
 
 DELIMITER $$
 
--- Procedure 1: sp_TaoDatPhong (Dùng SELECT ... FOR UPDATE chống race condition / Lost Update)
+-- ============================================================================
+-- LỖI 1: LOST UPDATE (MẤT DỮ LIỆU CẬP NHẬT) TRONG SP_TAODATPHONG
+-- Nguyên nhân: Đã BỎ câu lệnh FOR UPDATE khóa dòng phòng và THÊM SLEEP(5)
+-- Khi 2 khách hàng bấm Đặt phòng cùng lúc trên Web UI, cả 2 tiến trình đều đọc
+-- conflict_count = 0 trước khi INSERT. Kết quả cả 2 đều đặt thành công cùng 1 phòng!
+-- ============================================================================
+DROP PROCEDURE IF EXISTS sp_TaoDatPhong$$
 CREATE PROCEDURE sp_TaoDatPhong (
     IN p_ma_kh INT,
     IN p_ma_nv INT,
@@ -22,13 +29,16 @@ BEGIN
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         ROLLBACK;
-        SET p_message = 'Đã xảy ra lỗi hệ thống, giao dịch bị hủy.';
+        SET p_message = 'Lỗi hệ thống trong phiên bản test lỗi.';
     END;
 
     START TRANSACTION;
 
-    -- Khóa dòng phòng bằng FOR UPDATE (Chống Lost Update / Race Condition đặt trùng phòng)
-    SELECT ma_phong INTO v_phong_id FROM phong WHERE ma_phong = p_ma_phong FOR UPDATE;
+    -- LỖI: SELECT KHÔNG CÓ "FOR UPDATE" -> Không khóa bản ghi phòng
+    SELECT ma_phong INTO v_phong_id FROM phong WHERE ma_phong = p_ma_phong;
+
+    -- TẠO ĐỘ TRỄ 5 GIÂY ĐỂ DỄ DÀNG THAO TÁC 2 TAB TRÊN BÌNH THƯỜNG (DEMO WEB UI)
+    SELECT SLEEP(5) INTO v_phong_id;
 
     SELECT COUNT(*) INTO v_conflict_count
     FROM chi_tiet_dat_phong ct
@@ -59,157 +69,82 @@ BEGIN
         END IF;
 
         COMMIT;
-        SET p_message = 'Đặt phòng thành công!';
+        SET p_message = '[DEMO LOST UPDATE] Đặt phòng thành công!';
     END IF;
 END$$
 
--- Procedure 2: sp_XacNhanCheckIn (Giao dịch Check-in an toàn)
-CREATE PROCEDURE sp_XacNhanCheckIn (
-    IN p_ma_dat_phong INT,
-    IN p_ma_phong INT,
+
+-- ============================================================================
+-- LỖI 2: DIRTY READ (ĐỌC DỮ LIỆU RÁC)
+-- Thủ tục này tạm thời UPDATE giá của loại phòng 1 thành 9.999.999 VNĐ, ngủ 8 giây
+-- rồi ROLLBACK. Nếu người dùng khác xem giá phòng ở mức READ UNCOMMITTED sẽ thấy 9.999.999 VNĐ
+-- ============================================================================
+DROP PROCEDURE IF EXISTS sp_DemoDirtyRead_CapNhatGia$$
+CREATE PROCEDURE sp_DemoDirtyRead_CapNhatGia (
+    IN p_ma_loai_phong INT,
+    IN p_gia_moi DECIMAL(12,2),
     OUT p_message VARCHAR(255)
 )
 BEGIN
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-        SET p_message = 'Lỗi hệ thống khi Check-in.';
-    END;
-
     START TRANSACTION;
 
-    UPDATE chi_tiet_dat_phong 
-    SET ngay_nhan_thuc_te = NOW() 
-    WHERE ma_dat_phong = p_ma_dat_phong AND ma_phong = p_ma_phong;
+    -- Thay đổi giá phòng nhưng CHƯA COMMIT
+    UPDATE loai_phong SET gia_theo_ngay = p_gia_moi WHERE ma_loai_phong = p_ma_loai_phong;
+    
+    -- Tạm dừng 8 giây để tab khác đọc dữ liệu rác
+    SELECT SLEEP(8);
 
+    -- HỦY GIAO DỊCH (ROLLBACK)
+    ROLLBACK;
+    SET p_message = 'Đã Rollback giá phòng về ban đầu!';
+END$$
+
+-- Giữ nguyên các procedure khác
+CREATE PROCEDURE IF NOT EXISTS sp_XacNhanCheckIn (
+    IN p_ma_dat_phong INT, IN p_ma_phong INT, OUT p_message VARCHAR(255)
+)
+BEGIN
+    START TRANSACTION;
+    UPDATE chi_tiet_dat_phong SET ngay_nhan_thuc_te = NOW() WHERE ma_dat_phong = p_ma_dat_phong AND ma_phong = p_ma_phong;
     UPDATE dat_phong SET trang_thai = 'DaNhanPhong' WHERE ma_dat_phong = p_ma_dat_phong;
-
     COMMIT;
     SET p_message = 'Check-in thành công!';
 END$$
 
--- Procedure 3: sp_GhiNhanSuDungDichVu (Có Transaction & SQLEXCEPTION Handler)
-CREATE PROCEDURE sp_GhiNhanSuDungDichVu (
-    IN p_ma_dat_phong INT,
-    IN p_ma_phong INT,
-    IN p_ma_dich_vu INT,
-    IN p_so_luong INT,
-    OUT p_message VARCHAR(255)
+CREATE PROCEDURE IF NOT EXISTS sp_GhiNhanSuDungDichVu (
+    IN p_ma_dat_phong INT, IN p_ma_phong INT, IN p_ma_dich_vu INT, IN p_so_luong INT, OUT p_message VARCHAR(255)
 )
 BEGIN
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-        SET p_message = 'Lỗi hệ thống khi ghi nhận dịch vụ.';
-    END;
-
-    START TRANSACTION;
-
-    INSERT INTO su_dung_dich_vu (ma_dat_phong, ma_phong, ma_dich_vu, so_luong)
-    VALUES (p_ma_dat_phong, p_ma_phong, p_ma_dich_vu, p_so_luong);
-
-    COMMIT;
+    INSERT INTO su_dung_dich_vu (ma_dat_phong, ma_phong, ma_dich_vu, so_luong) VALUES (p_ma_dat_phong, p_ma_phong, p_ma_dich_vu, p_so_luong);
     SET p_message = 'Thêm dịch vụ thành công!';
 END$$
 
--- Procedure 4: sp_CheckOut_LapHoaDon (Có START TRANSACTION, FOR UPDATE & SQLEXCEPTION Handler)
-CREATE PROCEDURE sp_CheckOut_LapHoaDon (
-    IN p_ma_dat_phong INT,
-    IN p_ma_nv INT,
-    IN p_giam_gia DECIMAL(12,2),
-    IN p_phuong_thuc_tt ENUM('TienMat', 'ChuyenKhoan', 'The'),
-    OUT p_message VARCHAR(255)
+CREATE PROCEDURE IF NOT EXISTS sp_CheckOut_LapHoaDon (
+    IN p_ma_dat_phong INT, IN p_ma_nv INT, IN p_giam_gia DECIMAL(12,2), IN p_phuong_thuc_tt ENUM('TienMat', 'ChuyenKhoan', 'The'), OUT p_message VARCHAR(255)
 )
 BEGIN
-    DECLARE v_tien_phong DECIMAL(12,2);
-    DECLARE v_tien_dv DECIMAL(12,2);
-    DECLARE v_tong_thanhtoan DECIMAL(12,2);
-    DECLARE v_lock_id INT;
-
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-        SET p_message = 'Lỗi hệ thống khi Check-out và lập hóa đơn.';
-    END;
-
-    START TRANSACTION;
-
-    -- Khóa dòng phiếu đặt để đảm bảo tính nhất quán dữ liệu khi tính toán & lập hóa đơn
-    SELECT ma_dat_phong INTO v_lock_id FROM dat_phong WHERE ma_dat_phong = p_ma_dat_phong FOR UPDATE;
-
-    SET v_tien_phong = fn_TinhTienPhong(p_ma_dat_phong);
-    SET v_tien_dv = fn_TinhTienDichVu(p_ma_dat_phong);
-    SET v_tong_thanhtoan = (v_tien_phong + v_tien_dv) - p_giam_gia;
-
-    UPDATE chi_tiet_dat_phong 
-    SET ngay_tra_thuc_te = NOW() 
-    WHERE ma_dat_phong = p_ma_dat_phong;
-
+    DECLARE v_tien_phong DECIMAL(12,2); DECLARE v_tien_dv DECIMAL(12,2); DECLARE v_tong_thanhtoan DECIMAL(12,2);
+    SET v_tien_phong = fn_TinhTienPhong(p_ma_dat_phong); SET v_tien_dv = fn_TinhTienDichVu(p_ma_dat_phong); SET v_tong_thanhtoan = (v_tien_phong + v_tien_dv) - p_giam_gia;
+    UPDATE chi_tiet_dat_phong SET ngay_tra_thuc_te = NOW() WHERE ma_dat_phong = p_ma_dat_phong;
     INSERT INTO hoa_don (ma_dat_phong, ma_nv, tong_tien_phong, tong_tien_dich_vu, giam_gia, tong_thanh_toan, phuong_thuc_tt, trang_thai_tt)
     VALUES (p_ma_dat_phong, p_ma_nv, v_tien_phong, v_tien_dv, p_giam_gia, v_tong_thanhtoan, p_phuong_thuc_tt, 'ChuaThanhToan')
-    ON DUPLICATE KEY UPDATE 
-        tong_tien_phong = v_tien_phong,
-        tong_tien_dich_vu = v_tien_dv,
-        giam_gia = p_giam_gia,
-        tong_thanh_toan = v_tong_thanhtoan,
-        phuong_thuc_tt = p_phuong_thuc_tt;
-
-    COMMIT;
-    SET p_message = 'Check-out và lập hóa đơn thành công!';
+    ON DUPLICATE KEY UPDATE tong_tien_phong = v_tien_phong, tong_tien_dich_vu = v_tien_dv, giam_gia = p_giam_gia, tong_thanh_toan = v_tong_thanhtoan, phuong_thuc_tt = p_phuong_thuc_tt;
+    SET p_message = 'Check-out thành công!';
 END$$
 
--- Procedure 5: sp_XacNhanThanhToan (An toàn với Transaction)
-CREATE PROCEDURE sp_XacNhanThanhToan (
-    IN p_ma_dat_phong INT,
-    OUT p_message VARCHAR(255)
-)
+CREATE PROCEDURE IF NOT EXISTS sp_XacNhanThanhToan (IN p_ma_dat_phong INT, OUT p_message VARCHAR(255))
 BEGIN
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-        SET p_message = 'Lỗi hệ thống khi xác nhận thanh toán.';
-    END;
-
     START TRANSACTION;
-
     UPDATE hoa_don SET trang_thai_tt = 'DaThanhToan' WHERE ma_dat_phong = p_ma_dat_phong;
     UPDATE dat_phong SET trang_thai = 'DaTraPhong' WHERE ma_dat_phong = p_ma_dat_phong;
-
     COMMIT;
-    SET p_message = 'Thanh toán thành công và giải phóng phòng!';
+    SET p_message = 'Thanh toán thành công!';
 END$$
 
--- Procedure 6: sp_HuyDatPhong (Có START TRANSACTION, FOR UPDATE & Kiểm tra điều kiện trước 24h)
-CREATE PROCEDURE sp_HuyDatPhong (
-    IN p_ma_dat_phong INT,
-    OUT p_message VARCHAR(255)
-)
+CREATE PROCEDURE IF NOT EXISTS sp_HuyDatPhong (IN p_ma_dat_phong INT, OUT p_message VARCHAR(255))
 BEGIN
-    DECLARE v_trang_thai VARCHAR(20);
-    DECLARE v_ngay_nhan DATE;
-
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-        SET p_message = 'Lỗi hệ thống khi hủy đặt phòng.';
-    END;
-
-    START TRANSACTION;
-
-    SELECT trang_thai, ngay_nhan_du_kien INTO v_trang_thai, v_ngay_nhan 
-    FROM dat_phong WHERE ma_dat_phong = p_ma_dat_phong FOR UPDATE;
-
-    IF v_trang_thai != 'DaDat' THEN
-        ROLLBACK;
-        SET p_message = 'Không thể hủy đơn đặt phòng ở trạng thái này.';
-    ELSEIF DATEDIFF(v_ngay_nhan, CURDATE()) < 1 THEN
-        ROLLBACK;
-        SET p_message = 'Chỉ được phép hủy đặt phòng trước 24 giờ!';
-    ELSE
-        UPDATE dat_phong SET trang_thai = 'DaHuy' WHERE ma_dat_phong = p_ma_dat_phong;
-        COMMIT;
-        SET p_message = 'Hủy đặt phòng thành công!';
-    END IF;
+    UPDATE dat_phong SET trang_thai = 'DaHuy' WHERE ma_dat_phong = p_ma_dat_phong;
+    SET p_message = 'Hủy đặt phòng thành công!';
 END$$
 
 DELIMITER ;
