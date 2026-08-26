@@ -39,7 +39,6 @@ def tim_phong():
     1. Đếm tổng số phòng trống thỏa điều kiện ban đầu
     2. Nghỉ 5 giây (time.sleep(5)) để Tab khác kịp đặt 1 phòng
     3. Lấy danh sách chi tiết các phòng trống thực tế
-    => Kết quả: Thông báo báo 5 phòng trống nhưng bên dưới chỉ hiện 4 phòng!
     """
     today = date.today()
     tomorrow = today + timedelta(days=1)
@@ -60,7 +59,6 @@ def tim_phong():
         elif ngay_tra <= ngay_nhan:
             flash('Ngay tra phai sau ngay nhan phong.', 'danger')
         else:
-            # QUERY 1: Đếm số lượng ban đầu
             phong_trong_so_luong_ban_dau = len(queries.lay_phong_trong(
                 ngay_nhan, ngay_tra,
                 int(ma_loai_phong_filter) if ma_loai_phong_filter else None
@@ -69,7 +67,6 @@ def tim_phong():
             print(f"[PHANTOM READ DEMO] Đếm ban đầu: {phong_trong_so_luong_ban_dau} phòng. Dừng 5s...")
             time.sleep(5)
 
-            # QUERY 2: Lấy danh sách thực tế sau 5s
             phong_trong = queries.lay_phong_trong(
                 ngay_nhan, ngay_tra,
                 int(ma_loai_phong_filter) if ma_loai_phong_filter else None
@@ -139,6 +136,11 @@ def dat_phong_online(ma_phong):
         )
 
     ma_kh = session['user_id']
+    
+    # DEMO LOST UPDATE: Tạm dừng 5 giây để 2 tab cùng bấm đặt phòng 101
+    print("[LOST UPDATE DEMO] Tạm dừng 5 giây trước khi gọi Stored Procedure...")
+    time.sleep(5)
+
     success, msg = queries.dat_phong_sp(
         ma_kh=ma_kh,
         ma_nv=None,
