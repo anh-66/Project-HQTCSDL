@@ -1,4 +1,3 @@
-import time
 """
 routes/dat_phong_routes.py
 --------------------------
@@ -35,10 +34,8 @@ dat_phong_bp = Blueprint('dat_phong', __name__)
 @dat_phong_bp.route('/tim-phong', methods=['GET', 'POST'])
 def tim_phong():
     """
-    DEMO PHANTOM READ (BÓNG MA):
-    1. Đếm tổng số phòng trống thỏa điều kiện ban đầu
-    2. Nghỉ 5 giây (time.sleep(5)) để Tab khác kịp đặt 1 phòng
-    3. Lấy danh sách chi tiết các phòng trống thực tế
+    GET : Hien thi form tim phong voi ngay mac dinh (hom nay / ngay mai).
+    POST: Tra ve danh sach phong trong theo ngay va loai phong.
     """
     today = date.today()
     tomorrow = today + timedelta(days=1)
@@ -59,24 +56,12 @@ def tim_phong():
         elif ngay_tra <= ngay_nhan:
             flash('Ngay tra phai sau ngay nhan phong.', 'danger')
         else:
-            phong_trong_so_luong_ban_dau = len(queries.lay_phong_trong(
-                ngay_nhan, ngay_tra,
-                int(ma_loai_phong_filter) if ma_loai_phong_filter else None
-            ))
-
-            print(f"[PHANTOM READ DEMO] Đếm ban đầu: {phong_trong_so_luong_ban_dau} phòng. Dừng 5s...")
-            time.sleep(5)
-
             phong_trong = queries.lay_phong_trong(
                 ngay_nhan, ngay_tra,
                 int(ma_loai_phong_filter) if ma_loai_phong_filter else None
             )
-
-            flash(
-                f'[DEMO PHANTOM READ] Kết quả thống kê ban đầu: Tìm thấy {phong_trong_so_luong_ban_dau} phòng trống. '
-                f'(Thực tế danh sách bên dưới hiện có {len(phong_trong)} phòng)!',
-                'info'
-            )
+            if not phong_trong:
+                flash('Khong tim thay phong trong trong khoang thoi gian nay. Vui long thu lai!', 'warning')
 
     return render_template(
         'dat_phong/form_dat_phong.html',
@@ -136,11 +121,6 @@ def dat_phong_online(ma_phong):
         )
 
     ma_kh = session['user_id']
-    
-    # DEMO LOST UPDATE: Tạm dừng 5 giây để 2 tab cùng bấm đặt phòng 101
-    print("[LOST UPDATE DEMO] Tạm dừng 5 giây trước khi gọi Stored Procedure...")
-    time.sleep(5)
-
     success, msg = queries.dat_phong_sp(
         ma_kh=ma_kh,
         ma_nv=None,
@@ -372,9 +352,11 @@ def quan_ly_dat_phong():
     """
     Hien thi toan bo phieu dat phong cho le tan quan ly.
     Co the loc theo trang_thai qua query string ?trang_thai=DaDat ...
+    Truy van co thê bat READ UNCOMMITTED voi ?read_uncommitted=1 hoac ?dirty_read=1 de demo Dirty Read.
     """
     trang_thai_filter = request.args.get('trang_thai') or None
-    danh_sach = queries.lay_tat_ca_dat_phong(trang_thai=trang_thai_filter)
+    read_uncommitted = request.args.get('read_uncommitted') == '1' or request.args.get('dirty_read') == '1'
+    danh_sach = queries.lay_tat_ca_dat_phong(trang_thai=trang_thai_filter, read_uncommitted=read_uncommitted)
     return render_template(
         'dat_phong/quan_ly.html',
         danh_sach=danh_sach,
