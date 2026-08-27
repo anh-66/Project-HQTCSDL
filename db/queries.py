@@ -437,7 +437,7 @@ def sua_phong(ma_phong, so_phong, ma_loai_phong, tang, trang_thai):
         return False, "Không thể kết nối CSDL"
     try:
         with conn.cursor() as cursor:
-            cursor.execute("SELECT trang_thai, ma_loai_phong FROM phong WHERE ma_phong = %s", (ma_phong,))
+            cursor.execute("SELECT trang_thai, ma_loai_phong FROM phong WHERE ma_phong = %s FOR UPDATE", (ma_phong,))
             hien_tai = cursor.fetchone()
             if hien_tai and hien_tai['trang_thai'] in ('DaDat', 'DangSuDung') and int(ma_loai_phong) != int(hien_tai['ma_loai_phong']):
                 return False, "Không thể đổi loại phòng khi phòng đang có khách đặt hoặc đang sử dụng!"
