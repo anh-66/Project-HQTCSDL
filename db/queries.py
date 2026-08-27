@@ -12,6 +12,8 @@ Bao gồm:
 
 from db.connection import get_connection, close_connection
 import pymysql
+import time
+from flask import flash, has_request_context
 
 
 # ===========================================================================
@@ -361,24 +363,70 @@ def lay_phong_trong(ngay_nhan, ngay_tra, ma_loai_phong=None):
 
 
 def lay_phong_theo_id(ma_phong):
+    """
+    [DEMO NON-REPEATABLE READ]: Trong cùng 1 Transaction (READ COMMITTED),
+    thực hiện đọc 2 lần cách nhau 7 giây. Nếu ở giữa 2 lần đọc có giao dịch khác
+    cập nhật giá loại phòng và COMMIT, lần đọc 2 sẽ ra giá trị khác lần đọc 1.
+    """
     conn = get_connection()
     if not conn:
         return None
     try:
         with conn.cursor() as cursor:
+            # Thiết lập mức cô lập READ COMMITTED và mở transaction
+            cursor.execute("SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED")
+            cursor.execute("START TRANSACTION")
+
             sql = """
                 SELECT p.*, lp.ten_loai_phong, lp.gia_theo_ngay, lp.suc_chua, lp.mo_ta
                 FROM phong p
                 JOIN loai_phong lp ON p.ma_loai_phong = lp.ma_loai_phong
                 WHERE p.ma_phong = %s
             """
+            # Lần đọc 1
             cursor.execute(sql, (ma_phong,))
-            return cursor.fetchone()
+            row1 = cursor.fetchone()
+            gia1 = float(row1['gia_theo_ngay']) if row1 and row1.get('gia_theo_ngay') is not None else 0
+
+            # Delay 7 giây để chờ giao dịch khác UPDATE và COMMIT
+            time.sleep(7)
+
+            # Lần đọc 2 trong cùng Transaction
+            cursor.execute(sql, (ma_phong,))
+            row2 = cursor.fetchone()
+            gia2 = float(row2['gia_theo_ngay']) if row2 and row2.get('gia_theo_ngay') is not None else 0
+
+            cursor.execute("COMMIT")
+
+            # Cảnh báo Non-repeatable Read nếu có request context
+            if has_request_context() and row1 and row2:
+                if gia1 != gia2:
+                    flash(
+                        f"[DEMO NON-REPEATABLE READ] Phát hiện dữ liệu bị thay đổi trong cùng 1 Giao dịch! "
+                        f"Lần 1 đọc: {gia1:,.0f} VNĐ | Lần 2 đọc: {gia2:,.0f} VNĐ do giao dịch khác đã UPDATE & COMMIT trong lúc đang đọc!",
+                        "warning"
+                    )
+                else:
+                    flash(
+                        f"[DEMO NON-REPEATABLE READ] Giao dịch T1 đã đọc 2 lần (Giá: {gia1:,.0f} VNĐ) cách nhau 7 giây. "
+                        f"(Để thấy lỗi Non-repeatable Read, hãy sửa giá loại phòng ở tab khác trong 7s chờ)",
+                        "info"
+                    )
+            return row2
+    except Exception as e:
+        print(f"Lỗi lay_phong_theo_id: {e}")
+        return None
     finally:
         close_connection(conn)
 
 
 def lay_danh_sach_phong(trang_thai=None, tang=None):
+    """
+    [DEMO PHANTOM READ]: Khi người dùng lọc theo tầng (ví dụ tang=3),
+    trong cùng 1 Transaction (READ COMMITTED), thực hiện truy vấn 2 lần cách nhau 8 giây.
+    Nếu ở giữa 2 lần có giao dịch khác INSERT thêm phòng mới vào tầng đó và COMMIT,
+    lần đọc 2 sẽ xuất hiện thêm dòng mới ("Bóng ma" - Phantom row).
+    """
     conn = get_connection()
     if not conn:
         return []
@@ -400,8 +448,45 @@ def lay_danh_sach_phong(trang_thai=None, tang=None):
                 params.append(tang)
 
             sql += " ORDER BY p.tang ASC, p.so_phong ASC"
-            cursor.execute(sql, params)
-            return cursor.fetchall()
+
+            if tang is not None:
+                # Kích hoạt demo Phantom Read khi lọc theo Tầng
+                cursor.execute("SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED")
+                cursor.execute("START TRANSACTION")
+
+                # Lần đọc 1
+                cursor.execute(sql, params)
+                ds1 = cursor.fetchall()
+                count1 = len(ds1)
+
+                # Delay 8 giây để chờ giao dịch khác INSERT phòng mới
+                time.sleep(8)
+
+                # Lần đọc 2 trong cùng Transaction
+                cursor.execute(sql, params)
+                ds2 = cursor.fetchall()
+                count2 = len(ds2)
+
+                cursor.execute("COMMIT")
+
+                if has_request_context():
+                    if count1 != count2:
+                        flash(
+                            f"[DEMO PHANTOM READ] Trong cùng 1 Giao dịch lọc Tầng {tang}: "
+                            f"Lần 1 tìm thấy {count1} phòng | Lần 2 tìm thấy {count2} phòng -> "
+                            f"Xuất hiện bản ghi 'Bóng ma' (Phantom) mới được thêm từ giao dịch khác và COMMIT!",
+                            "warning"
+                        )
+                    else:
+                        flash(
+                            f"[DEMO PHANTOM READ] Giao dịch T1 đã đọc 2 lần danh sách phòng Tầng {tang} (Tìm thấy {count1} phòng) cách nhau 8s. "
+                            f"(Để thấy lỗi Phantom Read, hãy Thêm phòng mới ở Tầng {tang} ở tab khác trong 8s chờ)",
+                            "info"
+                        )
+                return ds2
+            else:
+                cursor.execute(sql, params)
+                return cursor.fetchall()
     except Exception as e:
         print(f"Lỗi lay_danh_sach_phong: {e}")
         return []
@@ -552,11 +637,16 @@ def xoa_loai_phong(ma_loai_phong):
 
 
 def lay_danh_sach_dich_vu():
+    """
+    [DEMO DIRTY READ]: Đọc danh sách dịch vụ ở mức READ UNCOMMITTED.
+    Sẽ đọc được cả dữ liệu đang bị sửa đổi tạm thời bởi giao dịch khác chưa COMMIT.
+    """
     conn = get_connection()
     if not conn:
         return []
     try:
         with conn.cursor() as cursor:
+            cursor.execute("SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED")
             cursor.execute("SELECT * FROM dich_vu ORDER BY ma_dich_vu")
             return cursor.fetchall()
     except Exception as e:
@@ -583,16 +673,28 @@ def them_dich_vu(ten_dich_vu, don_gia, don_vi_tinh):
 
 
 def sua_dich_vu(ma_dich_vu, ten_dich_vu, don_gia, don_vi_tinh):
+    """
+    [DEMO DIRTY READ]: Giao dịch T1 cập nhật dịch vụ nhưng TẠM DỪNG 8 GIÂY rồi CỐ TÌNH ROLLBACK.
+    Trong 8 giây đó, giao dịch T2 (ở mức READ UNCOMMITTED) đọc danh sách sẽ thấy dữ liệu rác (Dirty Read).
+    """
     conn = get_connection()
     if not conn:
         return False, "Không thể kết nối CSDL"
     try:
         with conn.cursor() as cursor:
+            cursor.execute("START TRANSACTION")
             sql = "UPDATE dich_vu SET ten_dich_vu = %s, don_gia = %s, don_vi_tinh = %s WHERE ma_dich_vu = %s"
             cursor.execute(sql, (ten_dich_vu, don_gia, don_vi_tinh, ma_dich_vu))
-        conn.commit()
-        return True, "Cập nhật dịch vụ thành công!"
+
+            # Delay 8 giây để bên khác đọc Dirty Read
+            time.sleep(8)
+
+            # Cố tình ROLLBACK để hủy bỏ thay đổi
+            conn.rollback()
+
+            return False, f"[DEMO DIRTY READ] Giao dịch T1 đã tạm UPDATE giá '{ten_dich_vu}' thành {don_gia:,.0f} VNĐ, giữ trong 8s rồi ROLLBACK (không lưu vào CSDL). Nếu trong 8s này có ai xem dịch vụ sẽ bị Dirty Read!"
     except Exception as e:
+        conn.rollback()
         return False, f"Lỗi cập nhật dịch vụ: {e}"
     finally:
         close_connection(conn)

@@ -3,7 +3,7 @@ USE hotel_management;
 
 DELIMITER $$
 
--- Procedure 1: sp_TaoDatPhong (Dùng SELECT ... FOR UPDATE chống race condition)
+-- Procedure 1: sp_TaoDatPhong (PHIÊN BẢN DEMO LỖI LOST UPDATE: Đã bỏ FOR UPDATE và thêm delay SLEEP)
 CREATE PROCEDURE sp_TaoDatPhong (
     IN p_ma_kh INT,
     IN p_ma_nv INT,
@@ -14,7 +14,6 @@ CREATE PROCEDURE sp_TaoDatPhong (
     OUT p_message VARCHAR(255)
 )
 BEGIN
-    DECLARE v_phong_id INT;
     DECLARE v_conflict_count INT;
     DECLARE v_gia_phong DECIMAL(12,2);
     DECLARE v_new_ma_dat_phong INT;
@@ -27,9 +26,9 @@ BEGIN
 
     START TRANSACTION;
 
-    -- Khóa dòng phòng bằng FOR UPDATE
-    SELECT ma_phong INTO v_phong_id FROM phong WHERE ma_phong = p_ma_phong FOR UPDATE;
+    -- [DEMO LOST UPDATE]: ĐÃ BỎ LỆNH KHÓA 'SELECT ... FOR UPDATE'
 
+    -- Kiểm tra xung đột thời gian đặt phòng
     SELECT COUNT(*) INTO v_conflict_count
     FROM chi_tiet_dat_phong ct
     JOIN dat_phong dp ON ct.ma_dat_phong = dp.ma_dat_phong
@@ -37,6 +36,9 @@ BEGIN
       AND dp.trang_thai NOT IN ('DaHuy', 'DaTraPhong')
       AND dp.ngay_nhan_du_kien < p_ngay_tra_du_kien
       AND dp.ngay_tra_du_kien > p_ngay_nhan_du_kien;
+
+    -- [DEMO DELAY]: Tạm dừng 6 giây để tạo cơ hội cho giao dịch khác kiểm tra thấy phòng trống và cùng INSERT
+    DO SLEEP(6);
 
     IF v_conflict_count > 0 THEN
         ROLLBACK;
