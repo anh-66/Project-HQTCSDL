@@ -1,9 +1,9 @@
--- 03_procedures.sql: Tạo 6 Stored Procedures quản lý giao dịch hoàn chỉnh & an toàn
+-- 03_procedures.sql: Tạo 6 Stored Procedures quản lý giao dịch
 USE hotel_management;
 
 DELIMITER $$
 
--- Procedure 1: sp_TaoDatPhong (Dùng SELECT ... FOR UPDATE chống race condition / Lost Update)
+-- Procedure 1: sp_TaoDatPhong (Dùng SELECT ... FOR UPDATE chống race condition)
 CREATE PROCEDURE sp_TaoDatPhong (
     IN p_ma_kh INT,
     IN p_ma_nv INT,
@@ -27,7 +27,7 @@ BEGIN
 
     START TRANSACTION;
 
-    -- Khóa dòng phòng bằng FOR UPDATE (Chống Lost Update / Race Condition đặt trùng phòng)
+    -- Khóa dòng phòng bằng FOR UPDATE
     SELECT ma_phong INTO v_phong_id FROM phong WHERE ma_phong = p_ma_phong FOR UPDATE;
 
     SELECT COUNT(*) INTO v_conflict_count
@@ -63,13 +63,15 @@ BEGIN
     END IF;
 END$$
 
--- Procedure 2: sp_XacNhanCheckIn (Giao dịch Check-in an toàn)
+-- Procedure 2: sp_XacNhanCheckIn
 CREATE PROCEDURE sp_XacNhanCheckIn (
     IN p_ma_dat_phong INT,
     IN p_ma_phong INT,
     OUT p_message VARCHAR(255)
 )
 BEGIN
+    DECLARE v_trang_thai VARCHAR(20);
+
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         ROLLBACK;
@@ -78,17 +80,28 @@ BEGIN
 
     START TRANSACTION;
 
-    UPDATE chi_tiet_dat_phong 
-    SET ngay_nhan_thuc_te = NOW() 
-    WHERE ma_dat_phong = p_ma_dat_phong AND ma_phong = p_ma_phong;
+    SELECT trang_thai INTO v_trang_thai 
+    FROM dat_phong WHERE ma_dat_phong = p_ma_dat_phong FOR UPDATE;
 
-    UPDATE dat_phong SET trang_thai = 'DaNhanPhong' WHERE ma_dat_phong = p_ma_dat_phong;
+    IF v_trang_thai IS NULL THEN
+        ROLLBACK;
+        SET p_message = 'Phiếu đặt phòng không tồn tại.';
+    ELSEIF v_trang_thai != 'DaDat' THEN
+        ROLLBACK;
+        SET p_message = 'Phiếu đặt phòng không ở trạng thái Đã đặt để Check-in.';
+    ELSE
+        UPDATE chi_tiet_dat_phong 
+        SET ngay_nhan_thuc_te = NOW() 
+        WHERE ma_dat_phong = p_ma_dat_phong AND ma_phong = p_ma_phong;
 
-    COMMIT;
-    SET p_message = 'Check-in thành công!';
+        UPDATE dat_phong SET trang_thai = 'DaNhanPhong' WHERE ma_dat_phong = p_ma_dat_phong;
+
+        COMMIT;
+        SET p_message = 'Check-in thành công!';
+    END IF;
 END$$
 
--- Procedure 3: sp_GhiNhanSuDungDichVu (Có Transaction & SQLEXCEPTION Handler)
+-- Procedure 3: sp_GhiNhanSuDungDichVu
 CREATE PROCEDURE sp_GhiNhanSuDungDichVu (
     IN p_ma_dat_phong INT,
     IN p_ma_phong INT,
@@ -97,6 +110,8 @@ CREATE PROCEDURE sp_GhiNhanSuDungDichVu (
     OUT p_message VARCHAR(255)
 )
 BEGIN
+    DECLARE v_trang_thai VARCHAR(20);
+
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         ROLLBACK;
@@ -105,14 +120,25 @@ BEGIN
 
     START TRANSACTION;
 
-    INSERT INTO su_dung_dich_vu (ma_dat_phong, ma_phong, ma_dich_vu, so_luong)
-    VALUES (p_ma_dat_phong, p_ma_phong, p_ma_dich_vu, p_so_luong);
+    SELECT trang_thai INTO v_trang_thai 
+    FROM dat_phong WHERE ma_dat_phong = p_ma_dat_phong FOR UPDATE;
 
-    COMMIT;
-    SET p_message = 'Thêm dịch vụ thành công!';
+    IF v_trang_thai IS NULL THEN
+        ROLLBACK;
+        SET p_message = 'Phiếu đặt phòng không tồn tại.';
+    ELSEIF v_trang_thai != 'DaNhanPhong' THEN
+        ROLLBACK;
+        SET p_message = 'Chỉ có thể ghi nhận dịch vụ cho phòng đang nhận ở (Đã nhận phòng).';
+    ELSE
+        INSERT INTO su_dung_dich_vu (ma_dat_phong, ma_phong, ma_dich_vu, so_luong)
+        VALUES (p_ma_dat_phong, p_ma_phong, p_ma_dich_vu, p_so_luong);
+
+        COMMIT;
+        SET p_message = 'Thêm dịch vụ thành công!';
+    END IF;
 END$$
 
--- Procedure 4: sp_CheckOut_LapHoaDon (Có START TRANSACTION, FOR UPDATE & SQLEXCEPTION Handler)
+-- Procedure 4: sp_CheckOut_LapHoaDon
 CREATE PROCEDURE sp_CheckOut_LapHoaDon (
     IN p_ma_dat_phong INT,
     IN p_ma_nv INT,
@@ -121,10 +147,10 @@ CREATE PROCEDURE sp_CheckOut_LapHoaDon (
     OUT p_message VARCHAR(255)
 )
 BEGIN
+    DECLARE v_trang_thai VARCHAR(20);
     DECLARE v_tien_phong DECIMAL(12,2);
     DECLARE v_tien_dv DECIMAL(12,2);
     DECLARE v_tong_thanhtoan DECIMAL(12,2);
-    DECLARE v_lock_id INT;
 
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
@@ -134,36 +160,46 @@ BEGIN
 
     START TRANSACTION;
 
-    -- Khóa dòng phiếu đặt để đảm bảo tính nhất quán dữ liệu khi tính toán & lập hóa đơn
-    SELECT ma_dat_phong INTO v_lock_id FROM dat_phong WHERE ma_dat_phong = p_ma_dat_phong FOR UPDATE;
+    SELECT trang_thai INTO v_trang_thai 
+    FROM dat_phong WHERE ma_dat_phong = p_ma_dat_phong FOR UPDATE;
 
-    SET v_tien_phong = fn_TinhTienPhong(p_ma_dat_phong);
-    SET v_tien_dv = fn_TinhTienDichVu(p_ma_dat_phong);
-    SET v_tong_thanhtoan = (v_tien_phong + v_tien_dv) - p_giam_gia;
+    IF v_trang_thai IS NULL THEN
+        ROLLBACK;
+        SET p_message = 'Phiếu đặt phòng không tồn tại.';
+    ELSEIF v_trang_thai != 'DaNhanPhong' THEN
+        ROLLBACK;
+        SET p_message = 'Chỉ được phép Check-out cho phiếu đặt ở trạng thái Đã nhận phòng.';
+    ELSE
+        SET v_tien_phong = fn_TinhTienPhong(p_ma_dat_phong);
+        SET v_tien_dv = fn_TinhTienDichVu(p_ma_dat_phong);
+        SET v_tong_thanhtoan = (v_tien_phong + v_tien_dv) - p_giam_gia;
 
-    UPDATE chi_tiet_dat_phong 
-    SET ngay_tra_thuc_te = NOW() 
-    WHERE ma_dat_phong = p_ma_dat_phong;
+        UPDATE chi_tiet_dat_phong 
+        SET ngay_tra_thuc_te = NOW() 
+        WHERE ma_dat_phong = p_ma_dat_phong;
 
-    INSERT INTO hoa_don (ma_dat_phong, ma_nv, tong_tien_phong, tong_tien_dich_vu, giam_gia, tong_thanh_toan, phuong_thuc_tt, trang_thai_tt)
-    VALUES (p_ma_dat_phong, p_ma_nv, v_tien_phong, v_tien_dv, p_giam_gia, v_tong_thanhtoan, p_phuong_thuc_tt, 'ChuaThanhToan')
-    ON DUPLICATE KEY UPDATE 
-        tong_tien_phong = v_tien_phong,
-        tong_tien_dich_vu = v_tien_dv,
-        giam_gia = p_giam_gia,
-        tong_thanh_toan = v_tong_thanhtoan,
-        phuong_thuc_tt = p_phuong_thuc_tt;
+        INSERT INTO hoa_don (ma_dat_phong, ma_nv, tong_tien_phong, tong_tien_dich_vu, giam_gia, tong_thanh_toan, phuong_thuc_tt, trang_thai_tt)
+        VALUES (p_ma_dat_phong, p_ma_nv, v_tien_phong, v_tien_dv, p_giam_gia, v_tong_thanhtoan, p_phuong_thuc_tt, 'ChuaThanhToan')
+        ON DUPLICATE KEY UPDATE 
+            tong_tien_phong = v_tien_phong,
+            tong_tien_dich_vu = v_tien_dv,
+            giam_gia = p_giam_gia,
+            tong_thanh_toan = v_tong_thanhtoan,
+            phuong_thuc_tt = p_phuong_thuc_tt;
 
-    COMMIT;
-    SET p_message = 'Check-out và lập hóa đơn thành công!';
+        COMMIT;
+        SET p_message = 'Check-out và lập hóa đơn thành công!';
+    END IF;
 END$$
 
--- Procedure 5: sp_XacNhanThanhToan (An toàn với Transaction)
+-- Procedure 5: sp_XacNhanThanhToan
 CREATE PROCEDURE sp_XacNhanThanhToan (
     IN p_ma_dat_phong INT,
     OUT p_message VARCHAR(255)
 )
 BEGIN
+    DECLARE v_trang_thai VARCHAR(20);
+
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         ROLLBACK;
@@ -172,14 +208,22 @@ BEGIN
 
     START TRANSACTION;
 
-    UPDATE hoa_don SET trang_thai_tt = 'DaThanhToan' WHERE ma_dat_phong = p_ma_dat_phong;
-    UPDATE dat_phong SET trang_thai = 'DaTraPhong' WHERE ma_dat_phong = p_ma_dat_phong;
+    SELECT trang_thai INTO v_trang_thai 
+    FROM dat_phong WHERE ma_dat_phong = p_ma_dat_phong FOR UPDATE;
 
-    COMMIT;
-    SET p_message = 'Thanh toán thành công và giải phóng phòng!';
+    IF v_trang_thai IS NULL THEN
+        ROLLBACK;
+        SET p_message = 'Phiếu đặt phòng không tồn tại.';
+    ELSE
+        UPDATE hoa_don SET trang_thai_tt = 'DaThanhToan' WHERE ma_dat_phong = p_ma_dat_phong;
+        UPDATE dat_phong SET trang_thai = 'DaTraPhong' WHERE ma_dat_phong = p_ma_dat_phong;
+
+        COMMIT;
+        SET p_message = 'Thanh toán thành công và giải phóng phòng!';
+    END IF;
 END$$
 
--- Procedure 6: sp_HuyDatPhong (Có START TRANSACTION, FOR UPDATE & Kiểm tra điều kiện trước 24h)
+-- Procedure 6: sp_HuyDatPhong (Kiểm tra điều kiện trước 24h)
 CREATE PROCEDURE sp_HuyDatPhong (
     IN p_ma_dat_phong INT,
     OUT p_message VARCHAR(255)
@@ -199,7 +243,10 @@ BEGIN
     SELECT trang_thai, ngay_nhan_du_kien INTO v_trang_thai, v_ngay_nhan 
     FROM dat_phong WHERE ma_dat_phong = p_ma_dat_phong FOR UPDATE;
 
-    IF v_trang_thai != 'DaDat' THEN
+    IF v_trang_thai IS NULL THEN
+        ROLLBACK;
+        SET p_message = 'Phiếu đặt phòng không tồn tại.';
+    ELSEIF v_trang_thai != 'DaDat' THEN
         ROLLBACK;
         SET p_message = 'Không thể hủy đơn đặt phòng ở trạng thái này.';
     ELSEIF DATEDIFF(v_ngay_nhan, CURDATE()) < 1 THEN
