@@ -137,16 +137,47 @@ Khi bạn test Vấn đề 1 trước đó và gặp thông báo *"Đặt phòng
 
 ---
 
-## IV. BẢNG TỔNG KẾT MỨC ĐỘ CÔ LẬP VÀ 4 VẤN ĐỀ TRONG HỆ CSDL
+### VẤN ĐỀ 5: BẾ TẮC GIAO DỊCH (DEADLOCK / CIRCULAR WAIT)
 
-| Mức độ cô lập (Isolation Level) | Lost Update | Dirty Read | Non-repeatable Read | Phantom Read |
-| :--- | :---: | :---: | :---: | :---: |
-| **READ UNCOMMITTED** *(Demo Vấn đề 2)* | ❌ Xảy ra | ❌ Xảy ra | ❌ Xảy ra | ❌ Xảy ra |
-| **READ COMMITTED** *(Demo Vấn đề 3, 4)* | ❌ Xảy ra (nếu không khóa) |  Khắc phục | ❌ Xảy ra | ❌ Xảy ra |
-| **REPEATABLE READ** *(Mặc định MySQL)* | ❌ Xảy ra (nếu không FOR UPDATE) |  Khắc phục |  Khắc phục |  Khắc phục (nhờ MVCC) |
-| **SERIALIZABLE / PESSIMISTIC LOCK** |  Khắc phục |  Khắc phục |  Khắc phục |  Khắc phục |
+#### 1. Bản chất & Nguyên nhân
+- **Bản chất:** Deadlock xảy ra khi hai hay nhiều giao dịch nắm giữ khóa độc quyền (X-Lock) trên các tài nguyên khác nhau và cùng yêu cầu xin khóa trên tài nguyên mà giao dịch kia đang nắm giữ, tạo thành một chu trình chờ khép kín (*Circular Wait* trong đồ thị Wait-For Graph: $T_1 \rightarrow T_2 \rightarrow T_1$). Không giao dịch nào có thể tiếp tục.Buộc bộ phát hiện bế tắc của MySQL InnoDB phải can thiệp, chọn một giao dịch làm "nạn nhân" để `ROLLBACK` và ném ra mã lỗi `ERROR 1213 (40001)`
+- **Code demo:** 
+  - `check_out_lap_hoa_don` (`db/queries.py`): Khóa `dat_phong` $\rightarrow$ `time.sleep(5)` $\rightarrow$ Khóa `su_dung_dich_vu`.
+  - `ghi_nhan_su_dung_dich_vu` (`db/queries.py`): Khóa `su_dung_dich_vu` $\rightarrow$ Khóa `dat_phong`.
 
----
+- **Bối cảnh nghiệp vụ thực tế trong khách sạn:**
+  - **Giao dịch $T_1$ (Lễ tân lập hóa đơn Check-out):** Khách làm thủ tục trả phòng tại quầy. Lễ tân mở giao dịch, khóa độc quyền phiếu đặt phòng trong bảng `dat_phong` $\rightarrow$ trì hoãn 5 giây $\rightarrow$ tiếp tục xin khóa bảng `su_dung_dich_vu` để tổng hợp tiền minibar lập hóa đơn.
+  - **Giao dịch $T_2$ (Nhân viên buồng phòng (tạm thời là lễ tân 2) ghi nhận dịch vụ minibar):** Cùng lúc đó, nhân viên buồng phòng kiểm tra tủ lạnh thấy khách có dùng đồ uống, liền mở giao dịch khóa bảng `su_dung_dich_vu` $\rightarrow$ tiếp tục xin khóa bảng `dat_phong` để đối soát trạng thái phiếu đặt phòng.
+  - $\Rightarrow$ $T_1$ giữ `dat_phong` chờ `su_dung_dich_vu`; $T_2$ giữ `su_dung_dich_vu` chờ `dat_phong` $\rightarrow$ **DEADLOCK xảy ra!**
+
+
+#### 2. Các bước demo từng bước trên giao diện UI
+1. **Chuẩn bị:** Đảm bảo có ít nhất một phiếu đặt phòng đang ở trạng thái **"Đã nhận phòng" / "Đang sử dụng"** (ví dụ phiếu đặt `#3`, kiểm tra tại `/luu-tru/check-in`).
+2. **Cửa sổ 1 (Trình duyệt Chrome - Lễ tân tại quầy - đóng vai Giao dịch T1):**
+   - Đăng nhập `letan01` $\rightarrow$ Vào **Check-out** (`/luu-tru/check-out/3`).
+   - Bấm nút **"Lập hóa đơn & Check-out"**.
+   - *(Cửa sổ 1 bắt đầu loading quay vòng trong 5 giây — T1 đang giữ khóa phiếu đặt phòng và chuẩn bị đọc bảng dịch vụ).*
+3. **Cửa sổ 2 (Trình duyệt Edge Ẩn danh - Nhân viên buồng phòng - đóng vai Giao dịch T2):**
+   - **Nhanh tay trong 5 giây đó**, đăng nhập `letan01` ở Edge $\rightarrow$ Vào **Sử dụng Dịch vụ** (`/luu-tru/dichvu?ma_dat_phong=3`).
+   - Chọn một dịch vụ (ví dụ: *Nước ngọt*, số lượng: `2`) $\rightarrow$ Bấm nút **"Thêm dịch vụ"**.
+   - *(Cả 2 cửa sổ cùng loading chờ đợi nhau do rơi vào chu trình Deadlock).*
+
+#### 3. Kết quả quan sát & Giải thích với Thầy
+
+* **TRÊN BRANCH DEMO LỖI (`demo-fix-all`):**
+  - **Kết quả:** 
+    - Cửa sổ 1 (Check-out) tải xong báo xanh: *"Check-out và lập hóa đơn thành công!"*.
+    - Cửa sổ 2 (Dịch vụ) văng thông báo **MÀU ĐỎ**:  
+      > `[DEMO DEADLOCK - LỖI 1213] Giao dịch Thêm dịch vụ bị MySQL hủy do Deadlock xảy ra!`
+  - **Giải thích với Thầy:** MySQL InnoDB đã phát hiện bế tắc khóa vòng tròn và chủ động khai tử giao dịch $T_2$ để giải cứu hệ thống. Do hệ thống chưa có cơ chế xử lý ngoại lệ Deadlock, thao tác thêm dịch vụ bị thất bại hoàn toàn. Khách hàng đã check-out rời đi dẫn đến **khách sạn bị thất thoát tiền dịch vụ minibar**.
+
+* **TRÊN BRANCH KHẮC PHỤC (`final`):**
+  - **Kết quả:**
+    - Cửa sổ 1 (Check-out) báo xanh thành công.
+    - Cửa sổ 2 (Dịch vụ) ban đầu bị đụng độ Deadlock, nhưng code Python đã bắt được mã lỗi `1213`, tự động `ROLLBACK` và **TỰ ĐỘNG THỬ LẠI (RETRY LẦN 2)** sau 0.5 giây!
+    - Cửa sổ 2 tải xong thành công mượt mà với thông báo nổi bật:  
+      > `[XỬ LÝ DEADLOCK THÀNH CÔNG] Ban đầu bị Deadlock (Lỗi 1213) do quầy đang Check-out. Hệ thống đã tự động Retry ngầm lần 2 thành công!`
+  - **Giải thích với Thầy:** Tầng ứng dụng Python đã triển khai cơ chế **Application-level Automatic Retry (Exponential Backoff)**. Thay vì báo lỗi làm hỏng việc, hệ thống tự động phục hồi và ghi nhận thành công, bảo toàn 100% dữ liệu hóa đơn và chống thất thoát doanh thu.
 
 ## V. NGUYÊN LÝ KHẮC PHỤC (CHO BRANCH THỨ 2 - KHẮC PHỤC)
 
