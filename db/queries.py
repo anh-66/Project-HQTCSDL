@@ -955,7 +955,7 @@ def lay_dich_vu_da_dung(ma_dat_phong):
 
 def ghi_nhan_su_dung_dich_vu(ma_dat_phong, ma_phong, ma_dich_vu, so_luong, max_retries=3):
     so_lan_retry = 0
-    # 👉 [BỌC THÊM VÒNG LẶP RETRY NÀY]:
+
     for attempt in range(1, max_retries + 1):
         conn = get_connection()
         if not conn:
@@ -982,12 +982,12 @@ def ghi_nhan_su_dung_dich_vu(ma_dat_phong, ma_phong, ma_dich_vu, so_luong, max_r
                 
         except pymysql.err.OperationalError as e:
             conn.rollback()
-            # 👉 [KHI DÍNH LỖI 1213 THÌ TỰ ĐỘNG THỬ LẠI CHỨ KHÔNG BÁO LỖI NỮA]
+           
             if e.args[0] == 1213:
                 so_lan_retry += 1
                 if attempt < max_retries:
-                    time.sleep(0.5) # Đợi bên Check-out commit xong
-                    continue # Chạy lại lần nữa
+                    time.sleep(0.5) # Đợi Check-out commit
+                    continue 
                 return False, "[DEADLOCK] Đã thử lại 3 lần thất bại!"
             return False, f"Lỗi CSDL: {e}"
         except Exception as e:
@@ -1032,52 +1032,9 @@ def lay_thong_tin_check_out(ma_dat_phong):
         close_connection(conn)
 
 
-# def check_out_lap_hoa_don(ma_dat_phong, ma_nv, giam_gia, phuong_thuc_tt):
-#     conn = get_connection()
-#     if not conn:
-#         return False, "Không thể kết nối tới CSDL"
-#     try:
-#         with conn.cursor() as cursor:
-
-#             # 👉 [CHÈN THÊM 1]: Bắt đầu giao dịch để giữ khóa
-#             cursor.execute("START TRANSACTION;")
-            
-#             # 👉 [CHÈN THÊM 2]: Khóa bảng dat_phong trước
-#             cursor.execute("SELECT ma_dat_phong FROM dat_phong WHERE ma_dat_phong = %s FOR UPDATE;", (ma_dat_phong,))
-            
-#             # 👉 [CHÈN THÊM 3]: Delay 5 giây để bên kia kịp bấm nút Thêm dịch vụ
-#             time.sleep(5)
-            
-#             # 👉 [CHÈN THÊM 4]: Đòi khóa bảng su_dung_dich_vu (bị bên Dịch vụ chặn lại)
-#             cursor.execute("SELECT * FROM su_dung_dich_vu WHERE ma_dat_phong = %s FOR UPDATE;", (ma_dat_phong,))
-
-#             cursor.execute(
-#                 "CALL sp_CheckOut_LapHoaDon(%s, %s, %s, %s, @msg)",
-#                 (ma_dat_phong, ma_nv, giam_gia, phuong_thuc_tt)
-#             )
-#             cursor.execute("SELECT @msg AS message")
-#             res = cursor.fetchone()
-#             msg = res['message'] if res and res.get('message') else "Check-out và lập hóa đơn thành công!"
-#             conn.commit()
-#             return True, msg
-        
-#     # 👉 [CHÈN THÊM 5]: Bắt riêng mã lỗi 1213 của MySQL để báo đỏ Deadlock
-#     except pymysql.err.OperationalError as e:
-#         conn.rollback()
-#         if e.args[0] == 1213:
-#             return False, "[DEMO DEADLOCK - LỖI 1213] Giao dịch bị MySQL hủy do bế tắc khóa chéo với tiến trình Thêm dịch vụ!"
-#         return False, f"Lỗi CSDL: {e}"
-            
-#     except Exception as e:
-#         conn.rollback()
-#         print(f"Lỗi check_out_lap_hoa_don: {e}")
-#         return False, f"Lỗi: {str(e)}"
-#     finally:
-#         close_connection(conn)
-
 def check_out_lap_hoa_don(ma_dat_phong, ma_nv, giam_gia, phuong_thuc_tt, max_retries=3):
     so_lan_retry = 0
-    # 👉 [BỌC VÒNG LẶP RETRY CHO CHECK-OUT]:
+  
     for attempt in range(1, max_retries + 1):
         conn = get_connection()
         if not conn:
@@ -1088,7 +1045,7 @@ def check_out_lap_hoa_don(ma_dat_phong, ma_nv, giam_gia, phuong_thuc_tt, max_ret
                 
                 cursor.execute("SELECT ma_dat_phong FROM dat_phong WHERE ma_dat_phong = %s FOR UPDATE;", (ma_dat_phong,))
                 
-                # Chỉ delay 5s ở lần thử đầu tiên để tạo va chạm
+           
                 if attempt == 1:
                     time.sleep(5)
                 
@@ -1110,11 +1067,11 @@ def check_out_lap_hoa_don(ma_dat_phong, ma_nv, giam_gia, phuong_thuc_tt, max_ret
                 
         except pymysql.err.OperationalError as e:
             conn.rollback()
-            if e.args[0] == 1213: # KHI DÍNH DEADLOCK THÌ TỰ ĐỘNG THỬ LẠI
+            if e.args[0] == 1213:
                 so_lan_retry += 1
                 if attempt < max_retries:
                     time.sleep(0.5) # Chờ bên kia nhả khóa
-                    continue # THỬ LẠI LẦN NỮA
+                    continue 
                 return False, "[DEADLOCK] Thử lại quá 3 lần thất bại!"
             return False, f"Lỗi CSDL: {e}"
         except Exception as e:
