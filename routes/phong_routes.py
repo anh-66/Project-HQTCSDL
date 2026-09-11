@@ -129,14 +129,15 @@ def sua_loai(ma_loai_phong):
     gia = request.form.get('gia_theo_ngay')
     suc_chua = request.form.get('suc_chua')
     mo_ta = request.form.get('mo_ta', '').strip()
-    
+
     if not ten or not gia or not suc_chua:
         flash('Vui lòng điền đầy đủ thông tin!', 'danger')
     else:
         success, message = sua_loai_phong(ma_loai_phong, ten, float(gia), int(suc_chua), mo_ta)
         flash(message, 'success' if success else 'danger')
-    
+
     return redirect(url_for('phong.danh_sach_loai_phong'))
+
 
 @phong_bp.route('/loai-phong/xoa/<int:ma_loai_phong>', methods=['POST'])
 def xoa_loai(ma_loai_phong):
