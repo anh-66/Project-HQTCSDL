@@ -230,6 +230,7 @@
                 <div class="modal-dialog">
                     <div class="modal-content">
                         <form action="{{ url_for('phong.sua_loai', ma_loai_phong=lp.ma_loai_phong) }}" method="POST">
+                            <input type="hidden" name="gia_cu" value="{{ lp.gia_theo_ngay }}">
                             <div class="modal-header bg-primary text-white">
                                 <h5 class="modal-title">Sửa loại phòng #{{ lp.ma_loai_phong }}</h5>
                                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>

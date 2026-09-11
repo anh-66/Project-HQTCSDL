@@ -14,9 +14,9 @@ from db.connection import get_connection, close_connection
 import pymysql
 
 
-# ===========================================================================
+
 # 1. AUTH & HỒ SƠ KHÁCH HÀNG (MEMBER 2)
-# ===========================================================================
+
 
 def kiem_tra_trung_khach_hang(cccd=None, email=None, tai_khoan=None, exclude_ma_kh=None):
     """
@@ -176,9 +176,9 @@ def them_khach_hang_tai_quay(ho_ten, cccd, sdt, ngay_sinh=None, email=None, dia_
         close_connection(conn)
 
 
-# ===========================================================================
+
 # 2. QUẢN LÝ NHÂN VIÊN & TÀI KHOẢN (MEMBER 2)
-# ===========================================================================
+
 
 def lay_nhan_vien_theo_tai_khoan(tai_khoan):
     conn = get_connection()
@@ -318,9 +318,9 @@ def lay_danh_sach_nhan_vien():
         close_connection(conn)
 
 
-# ===========================================================================
+
 # 3. PHÒNG, LOẠI PHÒNG, DỊCH VỤ (MEMBER 3 & MEMBER 4)
-# ===========================================================================
+
 
 def lay_tat_ca_loai_phong():
     conn = get_connection()
@@ -517,18 +517,42 @@ def them_loai_phong(ten_loai_phong, gia_theo_ngay, suc_chua, mo_ta):
         close_connection(conn)
 
 
-def sua_loai_phong(ma_loai_phong, ten_loai_phong, gia_theo_ngay, suc_chua, mo_ta):
+def sua_loai_phong(ma_loai_phong, ten_loai_phong, gia_theo_ngay, suc_chua, mo_ta, gia_cu=None):
     conn = get_connection()
     if not conn:
         return False, "Không thể kết nối CSDL"
     try:
         with conn.cursor() as cursor:
+            # (1) Khóa độc quyền dòng loai_phong trong suốt giao dịch này.
+            cursor.execute(
+                "SELECT gia_theo_ngay FROM loai_phong WHERE ma_loai_phong = %s FOR UPDATE",
+                (ma_loai_phong,)
+            )
+            row = cursor.fetchone()
+            if not row:
+                conn.rollback()
+                return False, "Loại phòng không tồn tại!"
+
+            gia_hien_tai = float(row['gia_theo_ngay'])
+
+            # (2) Kiểm tra optimistic: giá vừa đọc (đã có khóa) có còn khớp với
+            # giá mà người dùng thấy lúc mở form hay không.
+            if gia_cu is not None and abs(gia_hien_tai - float(gia_cu)) > 0.001:
+                conn.rollback()
+                return False, (
+                    f"Cập nhật thất bại: Giá loại phòng đã bị một giao dịch khác thay đổi "
+                    f"(từ {float(gia_cu):,.0f} VNĐ thành {gia_hien_tai:,.0f} VNĐ) ngay trong lúc bạn "
+                    f"đang chỉnh sửa. Vui lòng tải lại trang để lấy dữ liệu mới nhất rồi thử lại, "
+                    f"tránh ghi đè mất thay đổi vừa rồi (chống Lost Update)."
+                )
+
             sql = """UPDATE loai_phong SET ten_loai_phong = %s, gia_theo_ngay = %s, suc_chua = %s, mo_ta = %s
                      WHERE ma_loai_phong = %s"""
             cursor.execute(sql, (ten_loai_phong, gia_theo_ngay, suc_chua, mo_ta, ma_loai_phong))
         conn.commit()
         return True, "Cập nhật loại phòng thành công!"
     except Exception as e:
+        conn.rollback()
         return False, f"Lỗi cập nhật loại phòng: {e}"
     finally:
         close_connection(conn)

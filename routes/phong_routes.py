@@ -129,11 +129,17 @@ def sua_loai(ma_loai_phong):
     gia = request.form.get('gia_theo_ngay')
     suc_chua = request.form.get('suc_chua')
     mo_ta = request.form.get('mo_ta', '').strip()
-    
+    # Giá loại phòng tại thời điểm form sửa được mở trên trình duyệt - dùng để
+    # phát hiện Lost Update (Optimistic Concurrency Control) trong sua_loai_phong().
+    gia_cu = request.form.get('gia_cu')
+
     if not ten or not gia or not suc_chua:
         flash('Vui lòng điền đầy đủ thông tin!', 'danger')
     else:
-        success, message = sua_loai_phong(ma_loai_phong, ten, float(gia), int(suc_chua), mo_ta)
+        success, message = sua_loai_phong(
+            ma_loai_phong, ten, float(gia), int(suc_chua), mo_ta,
+            gia_cu=float(gia_cu) if gia_cu not in (None, '') else None
+        )
         flash(message, 'success' if success else 'danger')
     
     return redirect(url_for('phong.danh_sach_loai_phong'))
