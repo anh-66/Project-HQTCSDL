@@ -654,9 +654,9 @@ def lay_danh_sach_tang():
         close_connection(conn)
 
 
-# ===========================================================================
+
 # 4. ĐẶT PHÒNG, CHECK-IN & QUẢN LÝ PHIẾU ĐẶT (MEMBER 4)
-# ===========================================================================
+
 
 def dat_phong_sp(ma_kh, ma_nv, nguon_dat, ma_phong, ngay_nhan_du_kien=None, ngay_tra_du_kien=None, ngay_nhan=None, ngay_tra=None):
     ngay_nhan = ngay_nhan_du_kien or ngay_nhan
@@ -833,9 +833,9 @@ def tinh_tien_phong(ma_dat_phong):
         close_connection(conn)
 
 
-# ===========================================================================
+
 # 5. BÁO CÁO DOANH THU (MEMBER 2)
-# ===========================================================================
+
 
 def doanh_thu_theo_thang(thang, nam):
     conn = get_connection()
@@ -862,9 +862,9 @@ def bao_cao_doanh_thu_hoa_don():
         close_connection(conn)
 
 
-# ===========================================================================
+
 # 6. SỬ DỤNG DỊCH VỤ, CHECK-OUT & HÓA ĐƠN (MEMBER 5)
-# ===========================================================================
+
 
 def lay_danh_sach_phong_dung_dich_vu():
     """
