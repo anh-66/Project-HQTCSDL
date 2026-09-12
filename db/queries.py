@@ -1066,14 +1066,10 @@ def ghi_nhan_su_dung_dich_vu(ma_dat_phong, ma_phong, ma_dich_vu, so_luong):
         return False, "Không thể kết nối tới CSDL"
     try:
         with conn.cursor() as cursor:
- # 👉 [CHÈN THÊM 1]: Bắt đầu giao dịch
             cursor.execute("START TRANSACTION;")
-
-              
- #👉 [CHÈN THÊM 2]: Khóa bảng su_dung_dich_vu trước
             cursor.execute("SELECT * FROM su_dung_dich_vu WHERE ma_dat_phong = %s FOR UPDATE;", (ma_dat_phong,))
             
-#👉 [CHÈN THÊM 3]: Đòi khóa tiếp dat_phong -> BÙM! TẠO VÒNG TRÒN DEADLOCK VỚI CHECK-OUT
+#Đòi khóa tiếp dat_phong -> BÙM! TẠO VÒNG TRÒN DEADLOCK VỚI CHECK-OUT
             cursor.execute("SELECT ma_dat_phong FROM dat_phong WHERE ma_dat_phong = %s FOR UPDATE;", (ma_dat_phong,))
 
             cursor.execute(
@@ -1087,7 +1083,7 @@ def ghi_nhan_su_dung_dich_vu(ma_dat_phong, ma_phong, ma_dich_vu, so_luong):
             return True, msg
 
         
-# 👉 [CHÈN THÊM 4]: Bắt mã lỗi 1213 để bắn thông báo đỏ
+# Bắt mã lỗi 1213 để bắn thông báo đỏ
     except pymysql.err.OperationalError as e:
         conn.rollback()
         if e.args[0] == 1213:
@@ -1141,16 +1137,11 @@ def check_out_lap_hoa_don(ma_dat_phong, ma_nv, giam_gia, phuong_thuc_tt):
         return False, "Không thể kết nối tới CSDL"
     try:
         with conn.cursor() as cursor:
- #chèn thêm  Bắt đầu giao dịch để giữ khóa
             cursor.execute("START TRANSACTION;")
-
- #[CHÈN THÊM 2]: Khóa bảng dat_phong 
             cursor.execute("SELECT ma_dat_phong FROM dat_phong WHERE ma_dat_phong = %s FOR UPDATE;", (ma_dat_phong,))
-
-# [CHÈN THÊM 3]: Delay 5 giây để bên kia kịp bấm nút Thêm dịch vụ
             time.sleep(5)
 
- #[CHÈN THÊM 4]: Đòi khóa bảng su_dung_dich_vu (bị bên Dịch vụ chặn lại)
+ # Đòi khóa bảng su_dung_dich_vu (bị bên Dịch vụ chặn lại)
             cursor.execute("SELECT * FROM su_dung_dich_vu WHERE ma_dat_phong = %s FOR UPDATE;", (ma_dat_phong,))
 
             cursor.execute(
@@ -1162,7 +1153,7 @@ def check_out_lap_hoa_don(ma_dat_phong, ma_nv, giam_gia, phuong_thuc_tt):
             msg = res['message'] if res and res.get('message') else "Check-out và lập hóa đơn thành công!"
             conn.commit()
             return True, msg
-# [CHÈN THÊM 5]: Bắt riêng mã lỗi 1213 của MySQL để báo đỏ Deadlock
+# Bắt riêng mã lỗi 1213 của MySQL để báo đỏ Deadlock
     except pymysql.err.OperationalError as e:
         conn.rollback()
         if e.args[0] == 1213:
